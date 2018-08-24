@@ -1,0 +1,363 @@
+<%@page import="com.dotmarketing.util.PortletID"%>
+<%@page import="com.dotmarketing.portlets.structure.model.Field"%>
+<%@page import="com.dotmarketing.util.UtilMethods"%>
+<%@page import="com.dotmarketing.business.APILocator"%>
+<%@page import="java.util.GregorianCalendar"%>
+<%@page import="java.util.Date"%>
+<%@page import="java.util.Arrays"%>
+<%@page import="java.text.SimpleDateFormat"%>
+<%@page import="com.dotmarketing.util.Parameter"%>
+<%@page import="com.dotmarketing.portlets.categories.model.Category"%>
+<%@page import="com.dotmarketing.portlets.categories.business.CategoryAPI"%>
+<%@page import="com.dotmarketing.business.APILocator"%>
+<%@page import="com.dotmarketing.util.InodeUtils"%>
+<%@page import="com.dotmarketing.exception.DotSecurityException"%>
+<%@page import="com.dotmarketing.util.Logger"%>
+<%@page import="com.dotmarketing.portlets.structure.business.FieldAPI"%>
+<%@page import="com.dotmarketing.util.VelocityUtil"%>
+<%@page import="com.dotmarketing.business.web.WebAPILocator"%>
+
+<% if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) { %>
+
+<!doctype html>
+<html class="no-js" lang="en_US">
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+<title>dotTools</title>
+<link rel="stylesheet" href="css/fontawesome-all.css"/>
+<link rel="stylesheet" href="css/foundation.min.css"/>
+<link rel="stylesheet" href="css/dot-tools.css"/>
+<style type="text/css">
+body {
+    background-color: #222;
+    color: #bbb;
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica Neue, Helvetica, Roboto, Arial, sans-serif;
+    font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<div id="crud-app">
+	<div class="grid-y medium-grid-frame">
+		
+		<div class="cell shrink header medium-cell-block-container">
+			<nav class="hover-underline-menu" data-menu-underline-from-center="data-menu-underline-from-center">
+				<ul class="menu">
+					<a v-on:click="setPane('default')">dotTools</a>
+				</ul>
+				<ul class="menu">
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('console')}" v-on:click="setPane('console')">Console</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('import')}"  v-on:click="setPane('content-import')">Content Import</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('content-export')">Content Export</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('structure-export')">CT Export</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('structure-import')">CT Import</a>
+					</li>
+				</ul>
+				<ul class="menu">
+					<li><a href="/api/v1/logout">Logout</a></li>
+				</ul>
+			</nav>
+		</div>
+
+		<div class="cell medium-12 medium-cell-block-y">
+			<div v-if="pane == 'default'"> 
+				<h2>Hello</h2>
+			</div>
+			<div v-if="pane == 'console'"> 
+				<div class="console-wrapper">
+					<form>
+						<div class="grid-x grid-padding-x">
+							<div class="cell shrink">
+								<div>
+									<h5>Options</h5>
+									<input type="radio" name="outFormat" id="outFormat1" value="preformatted" checked="checked"><label for="outFormat1" title="Use preformatted output">Pre</label><br>
+									<input type="radio" name="outFormat" id="outFormat2" value="html" /><label for="outFormat2" title="Outputs as HTML">HTML</label><br>
+									<input type="checkbox" name="vtlProcess" id="vtlProcess" checked="checked" value="1"><label for="vtlProcess" code="Prcoess Velocity">Vel</label><br>
+									<input type="checkbox" name="liveUpdate" id="liveUpdate" onclick="vcLiveUpdater()" value="1"><label for="liveUpdate" onclick="vcLiveUpdater()" title="Live update">Live</label><br>
+									<input type="checkbox" name="enableLogging" id="enableLogging" value="1"><label for="enableLogging" title="Enable Logging">Log</label><br>
+									<p><a class="button console-send" onclick="vcSendQuery()">Run</a></p>
+									<span id="bench"></span>
+								</div>
+							</div>
+							<div class="cell auto small-grid-collapse-x">
+								<textarea class="velocity-console" name="ConsoleQuery" id="ConsoleQuery" rows="10" cols="60" spellcheck="false"></textarea>
+								<div id="spinnerConsole" class="loader hide"></div>
+								<span id="flood-alert" class="hide" style="color:#FF3333;">Flood control triggered... Delaying XHR by 1sec</span>
+							</div>
+						</div>
+					</form>
+				<div class="velocity-output-pre hide" contentEditable="true"></div>
+				<div class="velocity-output hide"></div>
+				<div class="helpful-area">
+					<div class="console-history">
+						<h2>History</h2>
+						<div id="history"></div>
+					</div>
+					<div class="console-snippets">
+						<div id="snippet-markdown"></div>
+					</div>
+				</div>
+				</div>
+
+				<div style="display:none;" id="markdown">
+
+				</div>
+
+			</div>
+			<div v-if="pane == 'content-import'">
+				<query-import-box :ct="ct"></query-import-box>
+			</div>
+			<div v-if="pane == 'content-export'"> 
+				<query-box :ct="ct"></query-box>
+			</div>
+			<div v-if="pane == 'structure-import'"> 
+				<structure-import-box></structure-import-box>
+			</div>
+			<div v-if="pane == 'structure-export'"> 
+				<structure-export-box :ct="ct"></structure-export-box>
+			</div>
+		</div>
+
+	</div>
+</div>
+
+
+<script type="text/x-template" id="query-box">
+	<div>
+
+		<div class="grid-container full">
+			<div class="grid-x grid-padding-x">
+					
+				<div class="cell small-5 align-self-middle">
+					<label>CT</label>
+					<select v-if="ct" v-model="selectedCT">
+						<option default value="">Select Content Type</option>
+						<option v-for="structure in ct" :value="structure.variable">{{ structure.name }}</option>
+					</select>
+					
+					<input type="text" v-model="exportOptions.query" placeholder="Query">
+					<input type="text" v-model="exportOptions.limit" placeholder="Limit" value="0">
+
+					<input type="text" v-model="exportOptions.sort" placeholder="Sort" value="modDate desc">
+					
+					<div id="out-format" v-if="selectedCT">
+						<label>Output Format</label>
+						<input type="radio" v-model="exportFormat" id="out_json" name="out-format" value="json" checked><label for="out_json">JSON</label>
+						<input type="radio" v-model="exportFormat" id="out_curl" name="out-format" value="curl"><label for="out_curl">cURL</label>
+						<input type="radio" v-model="exportFormat" id="out_xml" name="out-format" value="xml"><label for="out_xml">XML</label>
+						<input type="radio" v-model="exportFormat" id="out_csv" name="out-format" value="csv"><label for="out_csv">CSV</label>
+						<input type="radio" v-model="exportFormat" id="out_table" name="out-format" value="table"><label for="out_table">Table</label>
+						<a class="button tiny" v-on:click="getExportData()">Go</a>
+					</div>
+				</div>
+
+				<div class="cell small-7">
+					<div id="out-fields" v-if="selectedCT">
+						<label class="field-item" v-if="fields" v-for="field in fields" :for="field.variable">
+							<input type="checkbox" v-model="exportOptions.fields"  :value="field.variable" :id="field.variable">{{ field.name }}
+						</label>
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+		<hr>
+		<div v-if="exportData && exportOptions">
+			<query-output :exportData="exportData" :exportFormat="exportFormat" :exportOptions="exportOptions"></query-output>
+		</div>
+					
+	</div>
+</script>
+
+<script type="text/x-template" id="query-import-box">
+	<div>
+		<div class="grid-container full">
+			<div class="grid-x grid-padding-x">
+				<div class="cell small-3 align-self-middle">
+					<label>CT
+						<select v-if="ct" v-model="selectedCT">
+							<option default value="">Select Content Type</option>
+							<option v-for="structure in ct" :value="structure.variable">{{ structure.name }}</option>
+						</select>
+					</label>
+				</div>
+
+				<div class="cell auto align-self-middle" v-if="selectedCT">
+					<label>Import Mode</label>
+					<input type="radio" v-model="importOptions.inMode" id="in_put" name="in-mode" value="PUT" checked><label for="in_put">PUT</label>
+					<input type="radio" v-model="importOptions.inMode" id="in_post" name="in-mode" value="POST"><label for="in_post">POST</label>
+				</div>
+
+				<div class="cell small-3 align-self-middle" v-if="selectedCT">
+					<label>Save Mode</label>
+					<input type="radio" v-model="importOptions.saveMode" id="in_save" name="in-savemode" value="save" checked><label for="in_save">Save</label>
+					<input type="radio" v-model="importOptions.saveMode" id="in_publish" name="in-savemode" value="publish"><label for="in_publish">Publish</label>
+					<input type="radio" v-model="importOptions.saveMode" id="in_workflow" name="in-savemode" value="workflow"><label for="in_workflow">Workflow</label>
+				</div>
+
+				<div class="cell auto align-self-middle" v-if="selectedCT">
+					<label>Import Format</label>
+					<input type="radio" v-model="importOptions.format" id="in_json" name="in-format" value="json" checked><label for="in_json">JSON</label>
+					<input type="radio" v-model="importOptions.format" id="in_forms" name="in-format" value="form"><label for="in_forms">Forms</label>
+				</div>
+
+				<div class="cell auto align-self-middle" v-if="selectedCT">
+					<a class="button small" v-on:click="importQueue()">Begin Import</a>	
+				</div>
+			</div>
+		</div>
+
+		<div class="grid-container full" v-if="importOptions.saveMode === 'workflow'">
+			<div class="grid-x grid-padding-x">
+				<div class="cell auto align-self-middle">
+					<p>Workflow Options (Not Working Yet)</p>
+				</div>
+			</div>
+		</div>
+
+		<hr>
+		<p><span class="label alert" v-if="importErrors">{{ importErrors }}</span></p>
+
+		<div v-if="isImporting">
+			<ul>
+				<li v-for="imported in importState">{{ imported.id }} ({{ imported.responseCode }}): {{ imported.message }}</li>
+			</ul>
+			<div v-if="showBackButton">
+				<a class="button" v-on:click="importDone()">Done</a>
+			</div>
+		</div>
+		
+		<div v-if="importOptions.format == 'json' && !isImporting">
+			<h5>Import Data</h5>
+			<textarea class="textarea-data" v-model="textData"></textarea>
+			<h6>Field Reference</h6>
+			<div class="grid-container full">
+				<div class="grid-x grid-padding-x">
+					<div class="cell medium-3 align-self-middle" v-for="field in fields">
+						<input type="text" :value="field.variable">
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div v-if="importOptions.format == 'form'">
+			<h4>Form Input</h4>
+			<import-form :importOptions="importOptions" :selectedCT="selectedCT" :fields="fields"></import-form>
+		</div>
+
+	</div>
+</script>
+
+<script type="text/x-template" id="import-form">
+	<div v-if="importForm">
+
+		<div class="grid-container full">
+			<div class="grid-x grid-padding-x">
+				<div class="cell auto align-self-middle" v-for="(element, index) in importForm" v-if="(importOptions.inMode === 'POST' && element.variable != 'identifier')">
+					<div>
+						<label>{{ element.name }}
+							<input type="text" v-model="element.value" :name="element.variable" :placeholder="element.name">
+						</label>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+</script>
+
+<script type="text/x-template" id="query-output">
+	<div>
+		<div v-if="exportOptions.view == 'html'" class="export-data-html" v-html="exportData"></div>
+		<textarea v-if="exportOptions.view == 'plain'" class="textarea-data" wrap="off">{{exportData}}</textarea>
+	</div>
+</script>
+
+<script type="text/x-template" id="structure-import-box">
+	<div>
+		<p><span class="label alert" v-if="importErrors">{{ importErrors }}</span></p>
+		<div class="cell auto align-self-middle">
+			<label>Import Mode</label>
+			<input type="radio" v-model="importMode" id="in_json" name="in-mode" value="json" checked><label for="in_json">JSON</label>
+			<input type="radio" v-model="importMode" id="in_form" name="in-mode" value="form"><label for="in_form">Form</label>
+		</div>
+		<div v-if="importMode == 'json'">
+			<textarea class="textarea-data" wrap="off" placeholder="Place JSON data here." v-model="importText"></textarea>
+			<a class="button" v-on:click="importStructureJson()">Import</a>
+		</div>
+		<div v-if="importMode == 'form'">
+			<h3>Form (WIP)</h3>
+		</div>
+	</div>
+</script>
+
+<script type="text/x-template" id="structure-export-box">
+	<div>
+
+		<h5	class="text-center">Export Content Type</h5>
+		<div class="grid-container full">
+			<div class="grid-x grid-padding-x">
+					
+				<div class="cell small-5 align-self-middle">
+					<label>CT</label>
+					<select v-if="ct" v-model="selectedCT">
+						<option default value="">Select Content Type</option>
+						<option v-for="structure in ct" :value="structure.variable">{{ structure.name }}</option>
+					</select>
+				</div>
+			</div>
+		</div>
+
+		<div v-if="structureExportData">
+			<textarea class="textarea-data" wrap="off">{{structureExportData}}</textarea>
+		</div>
+	</div>
+
+</script>
+
+
+<script>
+
+
+</script>
+
+<div id="data-dump" style="display:none;"></div>
+
+<script src="js/jquery.js"></script>
+<script src="js/foundation.min.js"></script>
+<script src="js/vue.js"></script>
+<script>
+	$(document).foundation();
+	document.addEventListener("DOMContentLoaded", function (e) {
+		$("[data-menu-underline-from-center] a").addClass("underline-from-center");
+	});
+	var CrudApp = {};
+
+	CrudApp.host = "+(conhost:48190c8c-42c4-46af-8d1a-0cd5db894797 conhost:SYSTEM_HOST)";
+	// Test
+</script>
+<script src="js/dot-tools.js"></script>
+</body>
+</html>
+
+<% } else {
+
+	response.sendRedirect("login.jsp");
+
+} %>

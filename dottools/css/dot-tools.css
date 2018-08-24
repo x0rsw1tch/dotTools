@@ -1,0 +1,279 @@
+body {
+    background-color: #202020;
+    color: #ccc;
+}
+
+div.cell {
+    background-color: #242424;
+}
+
+div.cell.box-border {
+    border-style: solid;
+    border-color: #606060;
+    border-width: 1px 0;
+}
+
+.hover-underline-menu {
+    width: 100%;
+}
+
+.hover-underline-menu {
+    display: flex;
+    width: 100%;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    background-color: #2C3840;
+    align-items: center;
+}
+
+.hover-underline-menu .menu {
+    background-color: #2C3840;
+}
+
+.hover-underline-menu .menu a {
+    color: #fefefe;
+    padding: 1.2rem 1.5rem;
+}
+
+.hover-underline-menu .menu .underline-from-center {
+    position: relative;
+}
+
+.console-wrapper {
+    background-color: #222;
+    color: #bbb;
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica Neue, Helvetica, Roboto, Arial, sans-serif;
+    font-size: 14px;
+}
+
+h1 {font-size: 46px;margin: 0px 0px 8px 0px;font-weight: lighter;}
+h2 {font-size: 40px;margin: 0px 0px 8px 0px;font-weight: lighter;}
+h3 {font-size: 34px;margin: 0px 0px 8px 0px;font-weight: lighter;}
+h4 {font-size: 28px;margin: 0px 0px 8px 0px;font-weight: lighter;}
+h5 {font-size: 22px;margin: 0px 0px 8px 0px;font-weight: lighter;}
+h6 {font-size: 16px;margin: 0px 0px 8px 0px;font-weight: lighter;}
+
+hr {
+	border-color: #666;
+}
+
+p, a, input, label {
+	color: #bbb;
+}
+
+div.header>h1 {
+    text-align: center;
+}
+.velocity-console {
+	font-family: monospace,monospace !important;
+	font-size: 13pt !important;
+    color: #c1c1c1 !important;
+    background-color: #1c1c1c !important;
+	/*width: 99.5%;*/
+}
+
+a.console-send {
+	margin-right: 1rem;
+	font-size: 1.25rem;
+	/* border: 3px solid #aaa; */
+	padding: 5px 21px;
+    /* border-radius: 20px; */
+}
+
+.slideout_box {
+    display: none !important;
+}
+
+div.velocity-output-pre {
+	font-family: monospace,monospace !important;
+	font-size: 12pt !important;
+	color: #ccc !important;
+	background-color: #101010;
+	display: block;
+	width: 99.98%;
+	min-height: 4em;
+    max-height: 27rem;
+    margin-bottom: 0.5rem;
+}
+
+div.velocity-output-pre > pre {
+    max-height: 27rem;
+    overflow-y: auto;
+}
+
+
+div.helpful-area {
+	display: flex
+}
+div.helpful-area>div {
+	width: 48%;
+	max-width: 48%;
+	overflow: auto;
+	max-height: 30rem;
+	padding: 0 0.25rem;
+}
+div.helpful-area>div pre {
+	font-size: 11px;
+}
+div.helpful-area h1 {
+	font-size: 1.5rem;
+}
+div.helpful-area h3 {
+	font-size: 1.25rem;
+}
+div.helpful-area #snippet-markdown hr {
+	border: none;
+	margin-bottom: 2rem;
+}
+.clearfix {
+	clear: both;
+}
+.hide {
+	display: none !important;
+}
+.loader {
+  height: 4px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: #111;
+}
+.loader:before{
+  display: block;
+  position: absolute;
+  content: "";
+  left: -200px;
+  width: 200px;
+  height: 4px;
+  background-color: #FF0000;
+  animation: loading 2s linear infinite;
+}
+
+@keyframes loading {
+    from {left: -200px; width: 30%;}
+    50% {width: 30%;}
+    70% {width: 70%;}
+    80% { left: 50%;}
+    95% {left: 120%;}
+    to {left: 100%;}
+}
+
+.hover-underline-menu .menu a.nav-active {
+	border-bottom: 2px solid #ccc;
+	font-weight: bold;
+}
+
+.crud {
+	display:block;
+}
+
+code {
+    border: none;
+    background-color: black;
+    font-family: Consolas,"Liberation Mono",Courier,monospace;
+    font-weight: 400;
+    color: #cecece;
+    display: block;
+    font-size: 1.1em;
+    padding: 5px;
+}
+
+p, a, label, h1, h2, h3, h4, h5, h6 {
+	color: #cecece;
+}
+
+table thead {
+	color: #cecece;
+}
+
+table tbody, table tfoot, table thead {
+	border: 1px solid #161616;
+}
+
+table thead tr {
+	background-color: #070707;
+}
+
+table tbody tr:nth-child(even) {
+	background-color: #101010;
+}
+
+table tbody tr:nth-child(odd) {
+	background-color: #131313;
+}
+
+[type=color], [type=date], [type=datetime-local], [type=datetime], [type=email], [type=month], [type=number], [type=password], [type=search], [type=tel], [type=text], [type=time], [type=url], [type=week], textarea, select, option, select:focus, input[type=text]:focus, textarea:focus, table {
+	background-color: #101010;
+	color: #cecece;
+	border: none;
+}
+
+input[type=text], textarea {
+	font-family: "Lucida Console", Monaco, monospace
+}
+
+label.field-item {
+	display: inline-block;
+	width: 32%;
+}
+
+@media screen and (max-width: 64em) {
+	label.field-item {
+		width: 48.5%;
+	}
+}
+
+textarea.textarea-data {
+	width: 100%;
+	height: 27rem;
+	overflow: auto;
+}
+
+out-fields label {
+    line-height: 1.4;
+}
+
+.horizontal-list {
+    list-style-type: none;
+    margin-left: 0;
+}
+
+.horizontal-list > li {
+    display: inline;
+    margin-left: 1rem;
+    margin-right: 1rem;
+}
+
+
+/* Filter Options */
+.options-list {
+    list-style-type: none;
+    margin-left: 0;
+}
+
+.options-list .switch-paddle {
+    background-color: #333;
+}
+
+.options-list .switch.tiny > label {
+    width: 10rem;
+    border-radius: 7px;
+}
+
+.options-list .switch-paddle > .switch-active,
+.options-list .switch-paddle > .switch-inactive {
+    left: 2.5%;
+}
+
+.options-list .switch.tiny .switch-paddle::after {
+    left: inherit;
+    right: 1.90rem;
+    border-radius: 50%;
+}
+
+.options-list .switch.tiny input:checked ~ .switch-paddle::after {
+    left: inherit;
+    right: 0.33rem;
+}
