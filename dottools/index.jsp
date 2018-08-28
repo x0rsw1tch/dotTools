@@ -67,6 +67,9 @@ body {
 					<li>
 						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('structure-import')">CT Import</a>
 					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('api')">API</a>
+					</li>
 				</ul>
 				<ul class="menu">
 					<li><a href="/api/v1/logout">Logout</a></li>
@@ -75,9 +78,13 @@ body {
 		</div>
 
 		<div class="cell medium-12 medium-cell-block-y">
+			
+			
 			<div v-if="pane == 'default'"> 
-				<h2>Hello</h2>
+				<content-manager :ct="ct"></content-manager>
 			</div>
+
+
 			<div v-if="pane == 'console'"> 
 				<div class="console-wrapper">
 					<form>
@@ -131,15 +138,85 @@ body {
 			<div v-if="pane == 'structure-export'"> 
 				<structure-export-box :ct="ct"></structure-export-box>
 			</div>
+			<div v-if="pane == 'api'"> 
+				<h3>API</h3>
+			</div>
 		</div>
 
 	</div>
 </div>
 
 
+<script type="text/x-template" id="content-manager">
+	<div>
+		<h5>Content Manager</h5>
+
+		<div class="grid-x grid-padding-x">
+			<div class="cell small-12">
+				<input type="text" v-model="query.query" placeholder="Lucene Query">
+			</div>
+			<div class="cell small-12">
+				<input type="text" v-model="query.query2" placeholder="Lucene Query">
+			</div>
+		</div>
+		<div class="grid-x grid-padding-x">
+			<div class="cell small-3">
+				<input type="text" v-model="query.limit" placeholder="Limit" value="0">
+			</div>
+			<div class="cell small-3">
+				<input type="text" v-model="query.offset" placeholder="Offset" value="0">
+			</div>
+			<div class="cell small-3">
+				<input type="text" v-model="query.sort" placeholder="Sort" value="modDate desc">
+			</div>
+			<div class="cell small-3">
+				<a class="button" v-on:click="sendQuery()">Go</a>
+			</div>
+		</div>
+		
+
+		<div v-if="results">
+			<content-list :ct="ct" :results="results"></content-list>
+		</div>
+	</div>
+</script>
+
+<script type="text/x-template" id="content-list">
+	<div>
+		<div v-if="results">
+			<div class="export-data-html">
+				<table>
+					<thead>
+						<tr>
+							<th style="width:6.5rem;"><input type="checkbox" v-on:click="toggleCheckAll()"> Action</th>
+							<th>Title</th>
+							<th>Type</th>
+							<th>Step</th>
+							<th>Last Editor</th>
+							<th>Last Edit Date</th>
+						</tr>
+					</thead>
+					<tbody >
+						<tr v-for="result in results">
+							<td><input type="checkbox" v-model="result.checked"></td>
+							<td>{{ contentletName(result) }}</td>
+							<td>{{ result.type }}</td>
+							<td>{{ result.step }}</td>
+							<td>{{ result.lastEditor }}</td>
+							<td>{{ result.lastEditDate }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</script>
+
+
+
 <script type="text/x-template" id="query-box">
 	<div>
-
+		<p v-if="importErrors"><span class="label alert">{{ importErrors }}</span></p>
 		<div class="grid-container full">
 			<div class="grid-x grid-padding-x">
 					
@@ -232,7 +309,7 @@ body {
 		</div>
 
 		<hr>
-		<p><span class="label alert" v-if="importErrors">{{ importErrors }}</span></p>
+		<p v-if="importErrors"><span class="label alert">{{ importErrors }}</span></p>
 
 		<div v-if="isImporting">
 			<ul>
@@ -291,7 +368,7 @@ body {
 
 <script type="text/x-template" id="structure-import-box">
 	<div>
-		<p><span class="label alert" v-if="importErrors">{{ importErrors }}</span></p>
+		<p v-if="importErrors"><span class="label alert">{{ importErrors }}</span></p>
 		<div class="cell auto align-self-middle">
 			<label>Import Mode</label>
 			<input type="radio" v-model="importMode" id="in_json" name="in-mode" value="json" checked><label for="in_json">JSON</label>

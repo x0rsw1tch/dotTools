@@ -8,6 +8,15 @@ CrudApp.hasEntityList = function (data) {
 	return false;
 }
 
+CrudApp.getStructureDataMerged = function () {
+	if (CrudApp.structuresMerged === false && Array.isArray(CrudApp.CT) && Array.isArray(CrudApp.fields)) {
+
+	} else if (Array.isArray(CrudApp.structureData)) {
+		return CrudApp.structureData;
+	}
+	return CrudApp.structureData;
+}
+
 CrudApp.jsonFields = function (data, stName, enabledFields) {
 	var out = '';
 	out += "'stName':" + "'" + stName + "'";
@@ -158,6 +167,96 @@ CrudApp.util.deleteInode = function (inode, timeout) {
 }
 
 
+Vue.component('contentManager', {
+	template: '#content-manager',
+	props: ["ct"],
+	data: function () {
+		return {
+			hasResults: false,
+			queryErrors: null,
+			query: {
+				query: "+(conhost:48190c8c-42c4-46af-8d1a-0cd5db894797 conhost:SYSTEM_HOST) -contentType:Host -baseType:3 -contentType:Persona +languageId:1 +deleted:false working:true",
+				query2: "",
+				offset: 0,
+				limit: 0,
+				sort: 'modDate desc'
+			},
+			results: null,
+		}
+	},
+	methods: {
+		sendQuery: function () {
+			var vm = this;
+			$.ajax({
+				method: 'GET',
+				url: '/api/content/render/false/query/' + encodeURIComponent(vm.query.query) + '%20' + encodeURIComponent(vm.query.query2) + '%20' + '/orderby/' + encodeURIComponent(vm.query.sort) + '/limit/' + vm.query.limit + '/offset/' + vm.query.offset,
+				contentType: 'application/json',
+				success: function (data) {
+					if (data.contentlets) {
+						vm.results = data.contentlets;
+						vm.hasResults = true;
+					}
+				},
+				error: function (xhr, status, error) {
+					vm.queryErrors = status.status + ': ' + status.responseText;
+				}
+			})
+		}
+	}
+});
+
+
+Vue.component('contentList', {
+	template: "#content-list",
+	props: ["ct", "results"],
+	methods: {
+		toggleCheckAll: function () {
+			for (var i = 0; i < this.results.length; i++) {
+				if (this.results[i].checked === true) { 
+					this.results[i].checked = false;
+				} else {
+					this.results[i].checked = true;
+				}
+			}
+		},
+		contentletName: function (result) {
+			if (result.title) {
+				return result.title;
+			}
+			if (result.name) {
+				return result.name;
+			}
+
+			var contentletStructure = this.findStrucutureById(result.stInode);
+			//if (contentletStructure) {
+				var contentletDisplayField = this.findContentletDisplayField(contentletStructure);
+				return result[contentletDisplayField];
+			//}
+			
+		},
+		findStrucutureById: function (id) {
+			for (var i = 0; i < this.ct.length; i++) {
+				if (id === this.ct[i].id) {
+					return this.ct[i];
+				}
+			}
+		},
+		findContentletDisplayField: function (structure) {
+			for (var i = 0; i < structure.fields.length; i++) {
+				if (structure.fields[i].listed === true) {
+					return structure.fields[i].variable;
+				}
+			}
+		}
+	},
+	mounted: function () {
+		for (var i = 0; i < this.results.length; i++) {
+			this.results[i].checked = false;
+		}
+	}
+});
+
+
 Vue.component('queryBox', {
 	template: "#query-box",
 	props: ["ct"],
@@ -169,6 +268,7 @@ Vue.component('queryBox', {
 			rawFields: null,
 			exportData: null,
 			exportFormat: 'json',
+			importErrors: null,
 			exportOptions: {
 				query: "",
 				limit: 0,
@@ -519,7 +619,7 @@ Vue.component('structureImportBox', {
 						method: 'POST',
 						data: JSON.stringify(importObj.structure),
 						contentType: 'application/json',
-						url: '/api/v1/contenttype',
+						url: '/api/v1/contenttype?per_page=100',
 						success: function (data) {
 							if (data.hasOwnProperty('entity') && data.entity[0] && data.entity[0].id) {
 								vm.importedStructure = data.entity[0];
@@ -660,6 +760,7 @@ CrudApp.vue = new Vue({
 		return {
 			pane: 'default',
 			ct: null,
+			ctFields: null,
 			hasMarkdown: false,
 			consoleInputListener: false
 		}
@@ -672,7 +773,7 @@ CrudApp.vue = new Vue({
 			var vm = this;
 			$.ajax({
 				method: 'GET',
-				url: '/api/v1/contenttype',
+				url: '/api/v1/contenttype?per_page=-1',
 				contentType: 'application/json',
 				success: function (data) {
 					if (CrudApp.hasEntityList(data)) {
@@ -680,6 +781,35 @@ CrudApp.vue = new Vue({
 					}
 				}
 			});
+		},
+		getCTFieldList: function () {
+			if (Array.isArray(this.ct)) {
+				this.ctFields = [];
+				var vm = this;
+				for (var i = 0; i < this.ct.length; i++) {
+					$.ajax({
+						method: 'GET',
+						url: '/api/v1/contenttype/' + vm.ct[i].id + '/fields' ,
+						contentType: 'application/json',
+						success: function (data) {
+							if (CrudApp.hasEntityList(data)) {
+								vm.ctFields.push(data.entity);
+							}
+						}
+					});
+				}
+			}
+		},
+		mergeStructureData: function () {
+			for (var i = 0; i < this.ct.length; i++) {
+				for (var n = 0; n < this.ctFields.length; n++) {
+					if (this.ctFields[n][0]) { // Avoid Structures without Fields
+						if (this.ctFields[n][0].contentTypeId == this.ct[i].id) {
+							this.ct[i].fields = this.ctFields[n];
+						}
+					}
+				}
+			}
 		},
 		navItemActive: function (navItem) {
 			if (this.pane == navItem) {
@@ -707,7 +837,6 @@ CrudApp.vue = new Vue({
 					vcSendQuery();
 				}
 			});
-			
 		}
 	},
 	watch: {
@@ -717,6 +846,14 @@ CrudApp.vue = new Vue({
 					vm = this;
 					setTimeout ("vm.setConsoleInputListener()", 1000);
 				}
+			}
+		},
+		ct: function (val) {
+			this.getCTFieldList();
+		},
+		ctFields: function (val) {
+			if (this.ct.length == this.ctFields.length) {
+				this.mergeStructureData();
 			}
 		}
 	},
