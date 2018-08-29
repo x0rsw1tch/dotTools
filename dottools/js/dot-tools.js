@@ -169,7 +169,7 @@ CrudApp.util.deleteInode = function (inode, timeout) {
 
 Vue.component('contentManager', {
 	template: '#content-manager',
-	props: ["ct"],
+	props: ["ct", "users"],
 	data: function () {
 		return {
 			hasResults: false,
@@ -181,11 +181,12 @@ Vue.component('contentManager', {
 				limit: 0,
 				sort: 'modDate desc'
 			},
-			results: null,
+			results: null
 		}
 	},
 	methods: {
 		sendQuery: function () {
+			this.results = null;
 			var vm = this;
 			$.ajax({
 				method: 'GET',
@@ -201,25 +202,45 @@ Vue.component('contentManager', {
 					vm.queryErrors = status.status + ': ' + status.responseText;
 				}
 			})
-		}
+		},
 	}
 });
 
 
 Vue.component('contentList', {
 	template: "#content-list",
-	props: ["ct", "results"],
+	props: ["ct", "results", "users"],
+	data: function () {
+		return {
+			selectedContentlets: [],
+			actionSelected: null
+		}
+	},
 	methods: {
-		toggleCheckAll: function () {
+		getWorkflowId: function () {
+			switch (this.actionSelected) {
+				case 'publish':
+					return '000ec468-0a63-4283-beb7-fcb36c107b2f';
+				case 'unpublish':
+					return '38efc763-d78f-4e4b-b092-59cd8c579b93';
+				case 'archive':
+					return '4da13a42-5d59-480c-ad8f-94a3adf809fe';
+				case 'unarchive':
+					return 'c92f9aa1-9503-4567-ac30-d3242b54d02d';
+				case 'delete':
+					return '777f1c6b-c877-4a37-ba4b-10627316c2cc';
+			}
+		},
+		invertSelected: function () {
 			for (var i = 0; i < this.results.length; i++) {
-				if (this.results[i].checked === true) { 
-					this.results[i].checked = false;
+				if (this.selectedContentlets.indexOf(this.results[i].inode) === -1) {
+					this.selectedContentlets.push(this.results[i].inode);
 				} else {
-					this.results[i].checked = true;
+					this.selectedContentlets.splice( this.selectedContentlets.indexOf(this.results[i].inode), 1);
 				}
 			}
 		},
-		contentletName: function (result) {
+		resultTitle: function (result) {
 			if (result.title) {
 				return result.title;
 			}
@@ -227,14 +248,27 @@ Vue.component('contentList', {
 				return result.name;
 			}
 
-			var contentletStructure = this.findStrucutureById(result.stInode);
+			var contentletStructure = this.findStructureById(result.stInode);
 			//if (contentletStructure) {
 				var contentletDisplayField = this.findContentletDisplayField(contentletStructure);
 				return result[contentletDisplayField];
 			//}
 			
 		},
-		findStrucutureById: function (id) {
+		resultType: function (result) {
+			var idToFind = result.stInode;
+			var structureIndex = this.ct.findIndex(function (element) {
+				return element.id === idToFind 
+			});
+			return this.ct[structureIndex].variable;
+		},
+		resultModUser: function (result) {
+			var idToFind = result.modUser;
+			var userIndex = this.users.findIndex(element => element.id === idToFind);
+			return this.users[userIndex].name;
+
+		},
+		findStructureById: function (id) {
 			for (var i = 0; i < this.ct.length; i++) {
 				if (id === this.ct[i].id) {
 					return this.ct[i];
@@ -247,12 +281,53 @@ Vue.component('contentList', {
 					return structure.fields[i].variable;
 				}
 			}
+		},
+		contentActions: function (action, ele) {
+			this.actionSelected = action;
+		},
+		confirmAction: function () {
+			// 
+			var vm = this;
+			for (var i = 0; i < this.selectedContentlets.length; i++) {
+				$.ajax({
+					method: 'POST',
+					url: '/dwr/call/plaincall/BrowserAjax.saveFileAction.dwr',
+					contentType: 'text/plain',
+					dataType: "text",
+					data: 	'callCount=1' + "\n" +
+							'windowName=c0-param2' + "\n" +
+							'c0-scriptName=BrowserAjax' + "\n" +
+							'c0-methodName=saveFileAction' + "\n" +
+							'c0-id=0' + "\n" +
+							'c0-param0=string:' + "\n" +
+							'c0-param1=string:' + "\n" +
+							'c0-param2=string:' + this.getWorkflowId() + "\n" + // Workflow Id
+							'c0-param3=string:' + "\n" +
+							'c0-param4=string:' + this.selectedContentlets[i] + "\n" +	// Contentlet Inode
+							'c0-param5=string:' + "\n" +
+							'c0-param6=string:' + "\n" +
+							'c0-param7=string:' + "\n" +
+							'c0-param8=string:' + "\n" +
+							'c0-param9=string:' + "\n" +
+							'c0-param10=string:' + "\n" +
+							'batchId=6' + "\n" +
+							'instanceId=0' + "\n" +
+							'page=%2Fc%2Fportal%2Flayout%3F' + "\n" + 
+							'contentscriptSessionId=metPyYcibS3fXQfYRC6oeWQl2mm/UNJn3mm-eZ2MSzwvt',
+					success: function(data) {
+						if (data.indexOf('Workflow executed') > 0 && data.indexOf('success')) {
+							console.log('Applied workflow action success');
+						}
+					},
+					error: function (xhr, status, error) {
+						console.error('Execute workflow action failed: ', xhr, status, error);
+					}
+				});
+			}
 		}
 	},
 	mounted: function () {
-		for (var i = 0; i < this.results.length; i++) {
-			this.results[i].checked = false;
-		}
+
 	}
 });
 
@@ -762,7 +837,8 @@ CrudApp.vue = new Vue({
 			ct: null,
 			ctFields: null,
 			hasMarkdown: false,
-			consoleInputListener: false
+			consoleInputListener: false,
+			users: null
 		}
 	},
 	methods: {
@@ -810,6 +886,19 @@ CrudApp.vue = new Vue({
 					}
 				}
 			}
+		},
+		getUserList: function () {
+			var vm = this;
+			$.ajax({
+				method: 'GET',
+				url: '/api/v1/users/filter/start/0/limit/-1/includeAnonymous/true/includeDefault/true',
+				contentType: 'application/json',
+				success: function (data) {
+					if (data.errors.length === 0 && data.entity) {
+						vm.users = data.entity.data;
+					}
+				}
+			});
 		},
 		navItemActive: function (navItem) {
 			if (this.pane == navItem) {
@@ -859,6 +948,7 @@ CrudApp.vue = new Vue({
 	},
 	mounted: function () {
 		this.getCTList();
+		this.getUserList();
 	}
 });
 

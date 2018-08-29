@@ -197,12 +197,23 @@ table thead tr {
 }
 
 table tbody tr:nth-child(even) {
-	background-color: #101010;
+    background-color: #101010;
+    transition: background-color 300ms ease-in-out;
 }
 
 table tbody tr:nth-child(odd) {
-	background-color: #131313;
+    background-color: #131313;
+    transition: background-color 300ms ease-in-out;
 }
+
+table tbody tr:nth-child(even):hover {
+    background-color: #202020;
+}
+
+table tbody tr:nth-child(odd):hover {
+    background-color: #232323;
+}
+
 
 [type=color], [type=date], [type=datetime-local], [type=datetime], [type=email], [type=month], [type=number], [type=password], [type=search], [type=tel], [type=text], [type=time], [type=url], [type=week], textarea, select, option, select:focus, input[type=text]:focus, textarea:focus, table {
 	background-color: #101010;
@@ -223,6 +234,18 @@ label.field-item {
 	label.field-item {
 		width: 48.5%;
 	}
+}
+
+.button-margin-right {
+    margin-right: 1rem;
+}
+
+.button.primary,.button.success,.button.warning {
+    color: white;
+}
+
+.button.primary {
+    background-color: #41535f;
 }
 
 textarea.textarea-data {
@@ -276,4 +299,11 @@ out-fields label {
 .options-list .switch.tiny input:checked ~ .switch-paddle::after {
     left: inherit;
     right: 0.33rem;
+}
+
+
+/* Modal */
+.reveal {
+    background-color: #101010;
+    border-color: #2C3840;
 }

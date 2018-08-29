@@ -28,7 +28,7 @@
 <head>
 <title>dotTools</title>
 <link rel="stylesheet" href="css/fontawesome-all.css"/>
-<link rel="stylesheet" href="css/foundation.min.css"/>
+<link rel="stylesheet" href="css/foundation.css"/>
 <link rel="stylesheet" href="css/dot-tools.css"/>
 <style type="text/css">
 body {
@@ -56,19 +56,19 @@ body {
 						<a v-bind:class="{'nav-active': navItemActive('console')}" v-on:click="setPane('console')">Console</a>
 					</li>
 					<li>
-						<a v-bind:class="{'nav-active': navItemActive('import')}"  v-on:click="setPane('content-import')">Content Import</a>
+						<a v-bind:class="{'nav-active': navItemActive('import')}" v-on:click="setPane('content-import')">Content Import</a>
 					</li>
 					<li>
-						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('content-export')">Content Export</a>
+						<a v-bind:class="{'nav-active': navItemActive('export')}" v-on:click="setPane('content-export')">Content Export</a>
 					</li>
 					<li>
-						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('structure-export')">CT Export</a>
+						<a v-bind:class="{'nav-active': navItemActive('export')}" v-on:click="setPane('structure-export')">CT Export</a>
 					</li>
 					<li>
-						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('structure-import')">CT Import</a>
+						<a v-bind:class="{'nav-active': navItemActive('export')}" v-on:click="setPane('structure-import')">CT Import</a>
 					</li>
 					<li>
-						<a v-bind:class="{'nav-active': navItemActive('export')}"  v-on:click="setPane('api')">API</a>
+						<a v-bind:class="{'nav-active': navItemActive('export')}" v-on:click="setPane('api')">API</a>
 					</li>
 				</ul>
 				<ul class="menu">
@@ -81,7 +81,7 @@ body {
 			
 			
 			<div v-if="pane == 'default'"> 
-				<content-manager :ct="ct"></content-manager>
+				<content-manager :ct="ct" :users="users"></content-manager>
 			</div>
 
 
@@ -149,7 +149,7 @@ body {
 
 <script type="text/x-template" id="content-manager">
 	<div>
-		<h5>Content Manager</h5>
+		<h5 class="text-center">Content Manager</h5>
 
 		<div class="grid-x grid-padding-x">
 			<div class="cell small-12">
@@ -176,7 +176,7 @@ body {
 		
 
 		<div v-if="results">
-			<content-list :ct="ct" :results="results"></content-list>
+			<content-list :ct="ct" :results="results" :users="users"></content-list>
 		</div>
 	</div>
 </script>
@@ -184,26 +184,48 @@ body {
 <script type="text/x-template" id="content-list">
 	<div>
 		<div v-if="results">
+			
+			<div class="grid-x grid-padding-x">
+				<div class="cell small-6">
+					<div style="height: 57px;">
+						<div v-if="selectedContentlets.length > 0" style="display:flex; align-items: baseline;">
+							<span style="margin-right:1rem;">Actions: </span>
+							<a class="button primary small button-margin-right" v-on:click="contentActions('publish', this)">Publish</a>
+							<a class="button primary small button-margin-right" v-on:click="contentActions('unpublish', this)">Unpublish</a>
+							<a class="button primary small button-margin-right" v-on:click="contentActions('archive', this)">Archive</a>
+							<a class="button primary small button-margin-right" v-on:click="contentActions('unarchive', this)">Unarchive</a>
+							<a class="button primary small button-margin-right" v-on:click="contentActions('delete', this)">Delete</a>
+						</div>
+					</div>
+				</div>
+				<div class="cell small-6" v-if="actionSelected && selectedContentlets.length > 0">
+					<a class="button success button-margin-right" v-on:click="confirmAction()">Confirm {{ actionSelected }} on {{ selectedContentlets.length }} contentlet(s)?</a>
+					<a class="button alert" v-on:click="contentActions(null, this)">Cancel</a>
+				</div>
+			</div>
+
 			<div class="export-data-html">
 				<table>
 					<thead>
 						<tr>
-							<th style="width:6.5rem;"><input type="checkbox" v-on:click="toggleCheckAll()"> Action</th>
+							<th>
+								<input type="checkbox" title="Invert Selection" v-on:click="invertSelected()" style="margin-bottom:0;vertical-align:middle;">
+							</th>
 							<th>Title</th>
 							<th>Type</th>
-							<th>Step</th>
+							<th>Lang ID</th>
 							<th>Last Editor</th>
 							<th>Last Edit Date</th>
 						</tr>
 					</thead>
-					<tbody >
+					<tbody>
 						<tr v-for="result in results">
-							<td><input type="checkbox" v-model="result.checked"></td>
-							<td>{{ contentletName(result) }}</td>
-							<td>{{ result.type }}</td>
-							<td>{{ result.step }}</td>
-							<td>{{ result.lastEditor }}</td>
-							<td>{{ result.lastEditDate }}</td>
+							<td><input type="checkbox" v-model="selectedContentlets" :value="result.inode"></td>
+							<td>{{ resultTitle(result) }}</td>
+							<td>{{ resultType(result) }}</td>
+							<td>{{ result.languageId }}</td>
+							<td>{{ resultModUser(result) }}</td>
+							<td>{{ result.modDate }}</td>
 						</tr>
 					</tbody>
 				</table>
@@ -408,16 +430,11 @@ body {
 
 </script>
 
-
-<script>
-
-
-</script>
-
 <div id="data-dump" style="display:none;"></div>
 
+
 <script src="js/jquery.js"></script>
-<script src="js/foundation.min.js"></script>
+<script src="js/foundation.js"></script>
 <script src="js/vue.js"></script>
 <script>
 	$(document).foundation();
@@ -427,14 +444,10 @@ body {
 	var CrudApp = {};
 
 	CrudApp.host = "+(conhost:48190c8c-42c4-46af-8d1a-0cd5db894797 conhost:SYSTEM_HOST)";
-	// Test
 </script>
 <script src="js/dot-tools.js"></script>
 </body>
 </html>
-
 <% } else {
-
 	response.sendRedirect("login.jsp");
-
 } %>
