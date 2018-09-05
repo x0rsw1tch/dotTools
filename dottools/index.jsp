@@ -48,7 +48,7 @@
 <body>
 
 	<div id="crud-app">
-		<div class="grid-y medium-grid-frame">
+		<div class="grid-y">
 
 			<div class="cell shrink header medium-cell-block-container">
 				<nav class="hover-underline-menu" data-menu-underline-from-center="data-menu-underline-from-center">
@@ -171,10 +171,10 @@
 
 		<div class="grid-x grid-padding-x">
 			<div class="cell small-12">
-				<input type="text" v-model="query.query" placeholder="Lucene Query">
+				<input type="text" v-model="query.query" placeholder="Lucene Query" spellcheck="false">
 			</div>
 			<div class="cell small-12">
-				<input type="text" v-model="query.query2" placeholder="Lucene Query">
+				<input type="text" v-model="query.query2" placeholder="Lucene Query" spellcheck="false">
 			</div>
 		</div>
 		<div class="grid-x grid-padding-x">
@@ -213,6 +213,7 @@
 							<a class="button primary small button-margin-right" v-on:click="contentActions('archive', this)">Archive</a>
 							<a class="button primary small button-margin-right" v-on:click="contentActions('unarchive', this)">Unarchive</a>
 							<a class="button primary small button-margin-right" v-on:click="contentActions('delete', this)">Delete</a>
+							<a class="button primary small button-margin-right" v-on:click="contentActions('prune', this)">Prune Inodes</a>
 						</div>
 					</div>
 				</div>
