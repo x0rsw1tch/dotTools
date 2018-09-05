@@ -161,32 +161,37 @@ CrudApp.tableOutput = function (data, stName, enabledFields) {
 
 CrudApp.util = {};
 
-CrudApp.util.pruneInodes = function (contentlet) {
-	console.log('Getting List of Inodes...');
+CrudApp.util.pruneInodes = function (identifier) {
+	CrudApp.sessionLog.addEntry("Getting list of inodes for " + identifier, 3);
 	var inodeList = [];
 	var inodesToDelete = [];
 	$.ajax({
 		method: 'GET',
-		url: '/html/portlet/ext/contentlet/contentlet_versions_inc.jsp?contentletId=' + contentlet,
+		url: '/html/portlet/ext/contentlet/contentlet_versions_inc.jsp?contentletId=' + identifier,
 		contentType: 'text/html',
 		success: function (data) {
 			console.log('Retrieved list success, parsing data...');
 			$('#data-dump').html(data);
 			$('#data-dump .listingTable tr').each(function () {
 				$(this).children('td:last-child').each(function () {
-					inodeList.push($(this).text());
+					if ($(this).parent('tr').children("td:nth-child(2)").text().indexOf("Working Version") === -1) {
+						inodeList.push($(this).text());
+					}
 				});
 			});
-			console.log('Have list, sending to queue...');
-			if (inodeList.length > 2) {
-				CrudApp.util.pruneInodesQueue(inodeList.slice(2));
+			
+			if (inodeList.length > 0) {
+				CrudApp.sessionLog.addEntry("Have inode list for " + identifier, 3);
+				CrudApp.util.pruneInodesQueue(inodeList);
+			} else {
+				CrudApp.sessionLog.addEntry("Unable to find non-working version inodes for " + identifier, 2);
 			}
 		}
 	});
 }
 
 CrudApp.util.pruneInodesQueue = function (inodes) {
-	console.log('Starting Queue...');
+	CrudApp.sessionLog.addEntry("Starting queue for inode list..." + inodes.toString(), 3);
 	console.log(inodes);
 	for (var i = 0; i < inodes.length; i++) {
 		CrudApp.util.deleteInode(inodes[i], (i * 250));
@@ -194,14 +199,17 @@ CrudApp.util.pruneInodesQueue = function (inodes) {
 }
 
 CrudApp.util.deleteInode = function (inode, timeout) {
-	console.log('Queuing  ', inode);
+	CrudApp.sessionLog.addEntry("Queueing: " + inode, 3);
 	setTimeout(function () {
 		$.ajax({
 			method: 'GET',
 			url: '/c/portal/layout?p_l_id=b7ab5d3c-5ee0-4195-a17e-8f5579d718dd&p_p_id=site-browser&p_p_action=1&p_p_state=maximized&p_p_mode=view&_site_browser_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&cmd=deleteversion&&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3Db7ab5d3c-5ee0-4195-a17e-8f5579d718dd&inode=' + inode,
 			contentType: 'text/html',
 			success: function (data) {
-				console.log('Deleted Inode: ', inode);
+				CrudApp.sessionLog.addEntry("Deleted inode: " + inode, 3);
+			},
+			error: function (xhr, status, error) {
+				CrudApp.sessionLog.addEntry("inode delete failed: " + inode, 1);
 			}
 		});
 	}, timeout);
@@ -330,48 +338,68 @@ Vue.component('contentList', {
 		contentActions: function (action, ele) {
 			this.actionSelected = action;
 		},
+		getIdentifierByInode: function (inode) {
+			for (var i = 0; i < this.results.length; i++) {
+				if (this.results[i].inode === inode) {
+					return this.results[i].identifier;
+				}
+			}
+		},
 		confirmAction: function () {
-			// 
 			var vm = this;
 			CrudApp.sessionLog.openLogWindow();
-			CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Applying workflow actions to" + this.selectedContentlets.length + " contentlets..." , 3);
-			for (var i = 0; i < this.selectedContentlets.length; i++) {
-				$.ajax({
-					method: 'POST',
-					url: '/dwr/call/plaincall/BrowserAjax.saveFileAction.dwr',
-					dataType: "text",
-					data: 	'callCount=1' + "\n" +
-							'windowName=c0-param2' + "\n" +
-							'c0-scriptName=BrowserAjax' + "\n" +
-							'c0-methodName=saveFileAction' + "\n" +
-							'c0-id=0' + "\n" +
-							'c0-param0=string:' + "\n" +
-							'c0-param1=string:' + "\n" +
-							'c0-param2=string:' + this.getWorkflowId() + "\n" + // Workflow Id
-							'c0-param3=string:' + "\n" +
-							'c0-param4=string:' + this.selectedContentlets[i] + "\n" +	// Contentlet Inode
-							'c0-param5=string:' + "\n" +
-							'c0-param6=string:' + "\n" +
-							'c0-param7=string:' + "\n" +
-							'c0-param8=string:' + "\n" +
-							'c0-param9=string:' + "\n" +
-							'c0-param10=string:' + "\n" +
-							'batchId=' + CrudApp.dwrBatchId + "\n" +
-							'instanceId=0' + "\n" +
-							'page=%2Fc%2Fportal%2Flayout%3F' + "\n" + 
-							'scriptSessionId=' + CrudApp.dwrsessionid,
-					success: function(data) {
-						if (data.indexOf('Workflow executed') > 0 && data.indexOf('success')) {
-							CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Success", 3);
-						} else {
-							CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Invalid return data", 2);
+			
+			// Pruning inodes is a different process than applying workflow actions
+			if (this.actionSelected === 'prune') {
+				CrudApp.sessionLog.addEntry("contentManager inode prune: Preparing prune actions", 3);
+				var selectedIdentifiers = [];
+				for (var i = 0; i < this.selectedContentlets.length; i++) {
+					selectedIdentifiers.push(this.getIdentifierByInode(this.selectedContentlets[i]));
+				}
+				for (var i = 0; i < selectedIdentifiers.length; i++) {
+					CrudApp.util.pruneInodes(selectedIdentifiers[i]);
+				}
+
+			} else {
+				CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Applying workflow actions to " + this.selectedContentlets.length + " contentlets..." , 3);
+				for (var i = 0; i < this.selectedContentlets.length; i++) {
+					$.ajax({
+						method: 'POST',
+						url: '/dwr/call/plaincall/BrowserAjax.saveFileAction.dwr',
+						dataType: "text",
+						data: 	'callCount=1' + "\n" +
+								'windowName=c0-param2' + "\n" +
+								'c0-scriptName=BrowserAjax' + "\n" +
+								'c0-methodName=saveFileAction' + "\n" +
+								'c0-id=0' + "\n" +
+								'c0-param0=string:' + "\n" +
+								'c0-param1=string:' + "\n" +
+								'c0-param2=string:' + this.getWorkflowId() + "\n" + // Workflow Id
+								'c0-param3=string:' + "\n" +
+								'c0-param4=string:' + this.selectedContentlets[i] + "\n" +	// Contentlet Inode
+								'c0-param5=string:' + "\n" +
+								'c0-param6=string:' + "\n" +
+								'c0-param7=string:' + "\n" +
+								'c0-param8=string:' + "\n" +
+								'c0-param9=string:' + "\n" +
+								'c0-param10=string:' + "\n" +
+								'batchId=' + CrudApp.dwrBatchId + "\n" +
+								'instanceId=0' + "\n" +
+								'page=%2Fc%2Fportal%2Flayout%3F' + "\n" + 
+								'scriptSessionId=' + CrudApp.dwrsessionid,
+						success: function(data) {
+							if (data.indexOf('Workflow executed') > 0 && data.indexOf('success')) {
+								CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Success", 3);
+							} else {
+								CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Invalid return data", 2);
+							}
+						},
+						error: function (xhr, status, error) {
+							console.error('Execute workflow action failed: ', xhr, status, error);
+							CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Error: " + xhr, 1);
 						}
-					},
-					error: function (xhr, status, error) {
-						console.error('Execute workflow action failed: ', xhr, status, error);
-						CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Error: " + xhr, 1);
-					}
-				});
+					});
+				}
 			}
 		}
 	},
@@ -638,7 +666,7 @@ Vue.component('queryImportBox', {
 				if (Object.prototype.toString.call(inData) === '[object Array]') {
 					
 					inData.forEach(function (element) {
-						element.stName = vm.selectedCT;
+						element.stName = vm.ctName;
 					});
 					
 					this.itemsToImport = inData.length;
@@ -713,14 +741,13 @@ Vue.component('import-form', {
 		}
 	},
 	methods: {
-
-	},
-	watch: {
-		selectedCT: function () {
+		generateFormMetadata: function () {
 			var tmpObj = [];
 			for (var i = 0; i < this.selectedCT.fields.length; i++) {
 				
 				switch (this.selectedCT.fields[i].clazz) {
+					
+					// Text
 					case "com.dotcms.contenttype.model.field.ImmutableTextField":
 						tmpObj.push(
 							{
@@ -730,9 +757,78 @@ Vue.component('import-form', {
 							}
 						);
 					break;
-					case ""
+
+					// Textarea
+					case "com.dotcms.contenttype.model.field.ImmutableTextAreaField":
+
+					break;
+					
+					// Date/time
+					case "com.dotcms.contenttype.model.field.ImmutableDateTimeField":
+
+					break;
+					
+					// WYSIWYG
+					case "com.dotcms.contenttype.model.field.ImmutableWysiwygField":
+
+					break;
+
+					// Radio
+					case "com.dotcms.contenttype.model.field.ImmutableRadioField":
+
+					break;
+
+					// Select
+					case "com.dotcms.contenttype.model.field.ImmutableSelectField":
+						
+					break;
+
+					// Checkbox
+					case "com.dotcms.contenttype.model.field.ImmutableCheckboxField":
+
+					break;
+
+					// Folder 
+					case "com.dotcms.contenttype.model.field.ImmutableHostFolderField":
+
+					break;
+
+					// Image
+					case "com.dotcms.contenttype.model.field.ImmutableImageField":
+
+					break;
+
+					// Binary
+					case "com.dotcms.contenttype.model.field.ImmutableBinaryField":
+
+					break;
+
+					// Tags
+					case "com.dotcms.contenttype.model.field.ImmutableTagField":
+
+					break;
+
+					// Key/Value
+					case "com.dotcms.contenttype.model.field.ImmutableKeyValueField":
+
+					break;
+
+					// Custom
+					case "com.dotcms.contenttype.model.field.ImmutableCustomField":
+
+					break;
+
+					// Hidden
+					case "com.dotcms.contenttype.model.field.ImmutableHiddenField":
+
+					break;
 				}
 			}
+		}
+	},
+	watch: {
+		selectedCT: function () {
+			
 		}
 	} 
 });
