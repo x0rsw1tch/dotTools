@@ -30,7 +30,7 @@ body {
         <fieldset>
 			<input type="text" name="user" id="user" placeholder="Username" autofocus autocomplete="username">
 			<input type="password" name="password" id="password" placeholder="Password" autocomplete="password">
-			<input type="button" name="login" id="login" value="Login">
+			<input type="button" class="button primary" name="login" id="login" value="Login">
 		</fieldset>
     </form>
 

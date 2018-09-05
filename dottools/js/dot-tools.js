@@ -1,4 +1,45 @@
 /* dotCRUD */
+
+CrudApp.sessionLog = {};
+
+CrudApp.sessionLog.addEntry = function (text, level) {
+	var logWindow = $('#session-log');
+	var out = String('<p class="log-entry">');
+	var timestamp = moment().format("DD-MMM YYYY HH:mm:ss");
+	var logLevel = String('');
+	if (typeof level != 'undefined') {
+		switch (level) {
+			case 0:
+				logLevel = '<span class="label alert">[SEVERE]</span>';
+			break;
+			case 1:
+				logLevel = '<span class="label alert">[ERROR]</span>';
+			break;
+			case 2:
+				logLevel = '<span class="label warning">[WARN]</span>';
+			break;
+			case 3:
+				logLevel = '<span class="label primary">[INFO]</span>';
+			break;
+			default:
+				logLevel = '<span class="label primary">[INFO]</span>';
+			break;
+		}
+	} else {
+		logLevel = '<span class="label primary">[INFO]</span>';
+	}
+	out += timestamp + '&nbsp;' + logLevel + '&nbsp;' + text + '</p>';
+
+	$(logWindow).html( out + $(logWindow).html() );
+}
+
+CrudApp.sessionLog.openLogWindow = function () {
+	$('#logWindow').foundation('open');
+}
+
+
+CrudApp.dwrsessionid = null;
+CrudApp.dwrBatchId = 1;
 CrudApp.hasEntityList = function (data) {
 	if (data.hasOwnProperty('entity') && data.entity) {
 		if (Object.prototype.toString.call(data.entity) === '[object Array]') {
@@ -196,10 +237,14 @@ Vue.component('contentManager', {
 					if (data.contentlets) {
 						vm.results = data.contentlets;
 						vm.hasResults = true;
+						CrudApp.sessionLog.addEntry("contentManager sendQuery(): Callback Success", 3);
+					} else {
+						CrudApp.sessionLog.addEntry("contentManager sendQuery(): Return Data Invalid", 2);
 					}
 				},
 				error: function (xhr, status, error) {
 					vm.queryErrors = status.status + ': ' + status.responseText;
+					CrudApp.sessionLog.addEntry("contentManager sendQuery(): Callback error: " + error, 2);
 				}
 			})
 		},
@@ -249,10 +294,10 @@ Vue.component('contentList', {
 			}
 
 			var contentletStructure = this.findStructureById(result.stInode);
-			//if (contentletStructure) {
+			if (contentletStructure) {
 				var contentletDisplayField = this.findContentletDisplayField(contentletStructure);
 				return result[contentletDisplayField];
-			//}
+			}
 			
 		},
 		resultType: function (result) {
@@ -288,11 +333,12 @@ Vue.component('contentList', {
 		confirmAction: function () {
 			// 
 			var vm = this;
+			CrudApp.sessionLog.openLogWindow();
+			CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Applying workflow actions to" + this.selectedContentlets.length + " contentlets..." , 3);
 			for (var i = 0; i < this.selectedContentlets.length; i++) {
 				$.ajax({
 					method: 'POST',
 					url: '/dwr/call/plaincall/BrowserAjax.saveFileAction.dwr',
-					contentType: 'text/plain',
 					dataType: "text",
 					data: 	'callCount=1' + "\n" +
 							'windowName=c0-param2' + "\n" +
@@ -310,17 +356,20 @@ Vue.component('contentList', {
 							'c0-param8=string:' + "\n" +
 							'c0-param9=string:' + "\n" +
 							'c0-param10=string:' + "\n" +
-							'batchId=6' + "\n" +
+							'batchId=' + CrudApp.dwrBatchId + "\n" +
 							'instanceId=0' + "\n" +
 							'page=%2Fc%2Fportal%2Flayout%3F' + "\n" + 
-							'contentscriptSessionId=metPyYcibS3fXQfYRC6oeWQl2mm/UNJn3mm-eZ2MSzwvt',
+							'scriptSessionId=' + CrudApp.dwrsessionid,
 					success: function(data) {
 						if (data.indexOf('Workflow executed') > 0 && data.indexOf('success')) {
-							console.log('Applied workflow action success');
+							CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Success", 3);
+						} else {
+							CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Invalid return data", 2);
 						}
 					},
 					error: function (xhr, status, error) {
 						console.error('Execute workflow action failed: ', xhr, status, error);
+						CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Error: " + xhr, 1);
 					}
 				});
 			}
@@ -371,7 +420,11 @@ Vue.component('queryBox', {
 						vm.rawfields = data.entity;
 						vm.fields = vm.rebuildFieldsList(data.entity);
 						vm.preSelectCheckboxes();
+						CrudApp.sessionLog.addEntry("queryBox getCTFields(): Callback Success", 3);
 					}
+				},
+				error: function (xhr, status, error) {
+					CrudApp.sessionLog.addEntry("queryBox getCTFields(): Callback Fail: " + error, 1);
 				}
 			});
 		},
@@ -429,10 +482,12 @@ Vue.component('queryBox', {
 				contentType: requestContentType,
 				success: function (data) {
 					vm.rawData = data;
+					CrudApp.sessionLog.addEntry("queryBox getExportData(): Callback Success", 3);
 					vm.setOutput();
 				},
 				error: function (xhr, status, error) {
 					vm.exportData = xhr;
+					CrudApp.sessionLog.addEntry("queryBox getExportData(): Callback Failed" + error, 3);
 				}
 			});
 		},
@@ -521,6 +576,7 @@ Vue.component('queryImportBox', {
 	props: ["ct"],
 	data: function () {
 		return {
+			ctName: null,
 			selectedCT: null,
 			fields: null,
 			textData: null,
@@ -549,23 +605,32 @@ Vue.component('queryImportBox', {
 				contentType: 'application/json',
 				success: function (data) {
 					if (CrudApp.hasEntityList(data)) {
+						CrudApp.sessionLog.addEntry("queryImportBox getCTFields(): Callback Success", 3);
 						data.entity.unshift({
 							'name': 'Identifier',
 							'variable': 'identifier',
 							'dataType': 'TEXT'
 						});
 						vm.fields = data.entity;
+					} else {
+						CrudApp.sessionLog.addEntry("queryImportBox getCTFields(): Invalid Return Data", 2);
 					}
+				},
+				error: function (xhr, status, error) {
+					CrudApp.sessionLog.addEntry("queryImportBox getCTFields(): Callback Error" + error, 1);
 				}
 			});
 		},
 		importQueue: function () {
+			CrudApp.sessionLog.openLogWindow();
+			CrudApp.sessionLog.addEntry("importQueue(): Starting Import Queue", 3);
 			var vm = this;
 			if (this.textData && typeof this.textData === "string" && this.textData.length > 0) {
 				try {
 					var inData = JSON.parse(this.textData);	
 				} catch (error) {
 					this.importErrors = "Parse Error: " + error.message;
+					CrudApp.sessionLog.addEntry("importQueue(): Error Parsing text: " + error.message , 1);
 					return 1;
 				}
 				
@@ -604,9 +669,11 @@ Vue.component('queryImportBox', {
 					contentType: 'application/json',
 					success: function(data, status, xhr) {
 						vm.importState.push({'id': id, 'message': xhr.statusText, 'responseCode': xhr.status});
+						CrudApp.sessionLog.addEntry("jsonImport(): Import Success", 3);
 					},
 					error: function (status, xhr, error) {
 						vm.importState.push({'id': id, 'message': status.responseText, 'responseCode': status.status});
+						CrudApp.sessionLog.addEntry("jsonImport(): Import Error" + status.responseText, 1);
 					}
 				});
 			}
@@ -619,8 +686,12 @@ Vue.component('queryImportBox', {
 		}
 	},
 	watch: {
-		selectedCT: function (val) {
-			this.getCTFields();
+		ctName: function (val) {
+			for (var i = 0; i < this.ct.length; i++) {
+				if (this.ct[i].variable === this.ctName) {
+					this.selectedCT = this.ct[i];
+				}
+			}
 		},
 		importState: function (val) {
 			if (Object.prototype.toString.call(this.importState) === '[object Array]') {
@@ -635,23 +706,35 @@ Vue.component('queryImportBox', {
 
 Vue.component('import-form', {
 	template: '#import-form',
-	props: ['selectedCT', 'fields', 'importOptions'],
+	props: ['selectedCT', 'CT', 'importOptions', 'ctName'],
 	data: function () {
 		return {
 			importForm: []
 		}
 	},
-	mounted: function () {
-		var vm = this;
-		this.fields.forEach(function (element) {
-			vm.importForm.push({
-				'name': element.name,
-				'variable': element.variable,
-				'dataType': element.dataType,
-				'value': null
-			});
-		});
-	}
+	methods: {
+
+	},
+	watch: {
+		selectedCT: function () {
+			var tmpObj = [];
+			for (var i = 0; i < this.selectedCT.fields.length; i++) {
+				
+				switch (this.selectedCT.fields[i].clazz) {
+					case "com.dotcms.contenttype.model.field.ImmutableTextField":
+						tmpObj.push(
+							{
+								"name": "",
+								"value": "",
+								"variable": ""
+							}
+						);
+					break;
+					case ""
+				}
+			}
+		}
+	} 
 });
 
 
@@ -684,20 +767,23 @@ Vue.component('structureImportBox', {
 			return jsonData;
 		},
 		importStructureJson: function () {
+			CrudApp.sessionLog.openLogWindow();
+			CrudApp.sessionLog.addEntry("structureImportBox importStructureJson(): Starting CT import", 3);
 			var vm = this;
 			var importObj = this.getImportText();
 			vm.importErrors = null;
-
+			
 			if (importObj.hasOwnProperty('structure')) {
 				if (importObj.structure.hasOwnProperty('clazz') && importObj.structure.hasOwnProperty('host') && importObj.structure.hasOwnProperty('name') && importObj.structure.hasOwnProperty('owner')) {
 					$.ajax({
 						method: 'POST',
 						data: JSON.stringify(importObj.structure),
 						contentType: 'application/json',
-						url: '/api/v1/contenttype?per_page=100',
+						url: '/api/v1/contenttype',
 						success: function (data) {
 							if (data.hasOwnProperty('entity') && data.entity[0] && data.entity[0].id) {
 								vm.importedStructure = data.entity[0];
+								CrudApp.sessionLog.addEntry("structureImportBox importStructureJson(): Structure imported", 3);
 								vm.importStructureFieldsJson();
 							}
 						},
@@ -706,9 +792,12 @@ Vue.component('structureImportBox', {
 						}
 					});
 				}
+			} else {
+				CrudApp.sessionLog.addEntry("Import data missing structure identifier/var", 1);
 			}
 		},
 		importStructureFieldsJson: function () {
+			CrudApp.sessionLog.addEntry("structureImportBox importStructureFieldsJson(): Starting CT Fields import", 3);
 			var vm = this;
 			var importObj = this.getImportText();
 			var errors = [];
@@ -725,12 +814,16 @@ Vue.component('structureImportBox', {
 						contentType: 'application/json',
 						url: '/api/v1/contenttype/' + vm.importedStructure.id + '/fields',
 						success: function (data) {
-							if (data.hasOwnProperty('entity') && data.entity[0] && data.entity[0].id) {
+							if (data.hasOwnProperty('entity') && data.entity && data.entity.id) {
 								successes.push(importObj[i]);
+								CrudApp.sessionLog.addEntry("structureImportBox importStructureFieldsJson(): CT Field Imported", 3);
+							} else {
+								CrudApp.sessionLog.addEntry("structureImportBox importStructureFieldsJson(): Field Import Return Data invalid", 1);
 							}
 						},
 						error: function (status, xhr, error) {
 							errors.push(importObj[i]);
+							CrudApp.sessionLog.addEntry("structureImportBox importStructureFieldsJson(): error: " + error , 1);
 						}
 					});
 				}
@@ -828,6 +921,58 @@ Vue.component('structureExportBox', {
 	}
 });
 
+Vue.component('dotApi', {
+	template: '#dot-api',
+	props: ["ct"],
+	data: function () {
+		return {
+			query: {
+				uri: null,
+				params: null,
+				method: null,
+				dataType: null,
+				payload: null
+			},
+			showOutput: false,
+			queryResponse: null
+		}
+	},
+	methods: {
+		sendRequest: function () {
+			CrudApp.sessionLog.addEntry("dotApi sendRequest(): Sending Request", 3);
+			
+			this.showOutput = true;
+			var vm = this;
+			var uriParams = '';
+			if (this.query.uri) {
+				uriParams = uriParams + this.query.uri;
+			}
+			if (this.query.params) {
+				uriParams = uriParams + this.query.params;
+			}
+			$.ajax({
+				method: this.query.method,
+				url: uriParams,
+				contentType: this.query.dataType,
+				dataType: 'text',
+				success: function (data) {
+					CrudApp.sessionLog.addEntry("dotApi sendRequest(): Request Callback success", 3);
+					vm.showOutput = true;
+					vm.queryResponse = data.toString();
+				},
+				error: function (status, xhr, error) {
+					CrudApp.sessionLog.addEntry("dotApi sendRequest(): Request Callback Failed", 1);
+					vm.showOutput = true;
+					vm.queryResponse = status + ' ' + xhr + ' ' + error;
+				}
+			});
+		},
+		hideResponse: function () {
+			this.showOutput = false;
+		}
+	}
+});
+
 
 CrudApp.vue = new Vue({
 	el: "#crud-app",
@@ -854,6 +999,9 @@ CrudApp.vue = new Vue({
 				success: function (data) {
 					if (CrudApp.hasEntityList(data)) {
 						vm.ct = data.entity;
+						CrudApp.sessionLog.addEntry("getCTList(): Retrieved CT List", 3);
+					} else {
+						CrudApp.sessionLog.addEntry("getCTList(): Return data invalid", 1);
 					}
 				}
 			});
@@ -869,7 +1017,10 @@ CrudApp.vue = new Vue({
 						contentType: 'application/json',
 						success: function (data) {
 							if (CrudApp.hasEntityList(data)) {
+								CrudApp.sessionLog.addEntry("getCTFieldList(): Retrieved CT Field List", 3);
 								vm.ctFields.push(data.entity);
+							} else {
+								CrudApp.sessionLog.addEntry("getCTFieldList(): Return data invalid", 1);
 							}
 						}
 					});
@@ -896,6 +1047,9 @@ CrudApp.vue = new Vue({
 				success: function (data) {
 					if (data.errors.length === 0 && data.entity) {
 						vm.users = data.entity.data;
+						CrudApp.sessionLog.addEntry("getUserList(): Retrieved User List", 3);
+					} else {
+						CrudApp.sessionLog.addEntry("getUserList(): Return data invalid", 1);
 					}
 				}
 			});
@@ -926,6 +1080,43 @@ CrudApp.vue = new Vue({
 					vcSendQuery();
 				}
 			});
+		},
+		getDwrSessionId: function () {
+			var vm = this;
+			var dwrPayload = 	'callCount=1' + "\n" +
+								'c0-scriptName=__System' + "\n" +
+								'c0-methodName=generateId' + "\n" +
+								'c0-id=0' + "\n" +
+								'batchId=0' + "\n" +
+								'instanceId=0' + "\n" +
+								'page==%2Fc%2Fportal%2Flayout%3F' + "\n" +
+								'scriptSessionId=' + "\n" +
+								'windowName=detailFrame';
+			$.ajax({
+				method: 'POST',
+				dataType: "text",
+				xhrFields: { withCredentials: true },
+				url: '/dwr/call/plaincall/__System.generateId.dwr',
+				data: dwrPayload,
+				success: function (data) {
+					if (data.indexOf('r.handleCallback') > 0) {
+						CrudApp.sessionLog.addEntry("getDwrSessionId(): Retrieved DWRSESSIONID Success", 3);
+						vm.extractDwrSessionId(data.substring((data.indexOf('r.handleCallback') + 'r.handleCallback'.length + 1)));
+					} else {
+						CrudApp.sessionLog.addEntry("getDwrSessionId(): DWRSESSIONID Unable to parse data", 1);
+					}
+				}
+			});
+		},
+		extractDwrSessionId: function (str) {
+			var out = "";
+			out = str.substr(0, str.indexOf('");'));
+			out = out.replace(/\"[0-9]{1}\"/g, '');
+			out = out.replace(/\,/g, '');
+			out = out.replace(/\"/g, '');
+			CrudApp.dwrsessionid = out;
+			CrudApp.dwrBatchId++;
+			Cookies.set('DWRSESSIONID', out, { expires: 1 });
 		}
 	},
 	watch: {
@@ -949,6 +1140,9 @@ CrudApp.vue = new Vue({
 	mounted: function () {
 		this.getCTList();
 		this.getUserList();
+		if (!Cookies.get('DWRSESSIONID')) {
+			this.getDwrSessionId();
+		}
 	}
 });
 
@@ -1069,10 +1263,12 @@ function vcSendQuery() {
 					lastDispatch = Date.now();
 					vcHideEle('#spinnerConsole');
 					vcSendOutput(data);
+					CrudApp.sessionLog.addEntry("Velocity Console: Callback Success", 3);
 				},
 				error: function (data, status, xhr) {
 					vcHideEle('#spinnerConsole');
 					vcSendOutput('Error:'+"\n"+'status:'+status+"\n"+'xhr:'+xhr+"\n"+'data:'+data+"\n");
+					CrudApp.sessionLog.addEntry("Velocity Console: Callback Unsuccessful", 2);
 				},
 			});
 			vcHideEle($('#flood-alert'));

@@ -240,7 +240,8 @@ label.field-item {
     margin-right: 1rem;
 }
 
-.button.primary,.button.success,.button.warning {
+.button.primary,.button.success,.button.warning,
+.label.primary,.label.success,.label.warning {
     color: white;
 }
 
@@ -252,6 +253,23 @@ textarea.textarea-data {
 	width: 100%;
 	height: 27rem;
 	overflow: auto;
+}
+
+#session-log {
+    width: 100%;
+    min-height: 10rem;
+    max-height: 85vh;
+    overflow-y: auto;
+    background-color: #101010;
+}
+
+#session-log .log-entry {
+    font-family: "Lucida Console", "Courier New", Monaco, monospace;
+    margin-bottom: 0.5rem;
+}
+
+#session-log .log-entry .label {
+    padding: 0.3rem 0.2rem 0.2rem 0.2rem;
 }
 
 out-fields label {
