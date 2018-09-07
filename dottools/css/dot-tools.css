@@ -3,10 +3,6 @@ body {
     color: #ccc;
 }
 
-div.cell {
-    background-color: #242424;
-}
-
 div.cell.box-border {
     border-style: solid;
     border-color: #606060;
@@ -32,7 +28,7 @@ div.cell.box-border {
 
 .hover-underline-menu .menu a {
     color: #fefefe;
-    padding: 1.2rem 1.5rem;
+    padding: 0.75rem 1.5rem;
 }
 
 .hover-underline-menu .menu .underline-from-center {
@@ -221,6 +217,10 @@ table tbody tr:nth-child(odd):hover {
 	border: none;
 }
 
+input::placeholder {
+    opacity: 0.75;
+}
+
 input[type=text], textarea {
 	font-family: "Lucida Console", Monaco, monospace
 }
@@ -255,12 +255,15 @@ textarea.textarea-data {
 	overflow: auto;
 }
 
+textarea.textarea-form {
+    width: 100%;
+    height: 20rem;
+}
+
 #session-log {
     width: 100%;
-    min-height: 10rem;
-    max-height: 85vh;
-    overflow-y: auto;
     background-color: #101010;
+    padding-bottom: 1.1rem;
 }
 
 #session-log .log-entry {

@@ -1,220 +1,263 @@
 /* dotCRUD */
-
-CrudApp.sessionLog = {};
-
-CrudApp.sessionLog.addEntry = function (text, level) {
-	var logWindow = $('#session-log');
-	var out = String('<p class="log-entry">');
-	var timestamp = moment().format("DD-MMM YYYY HH:mm:ss");
-	var logLevel = String('');
-	if (typeof level != 'undefined') {
-		switch (level) {
-			case 0:
-				logLevel = '<span class="label alert">[SEVERE]</span>';
-			break;
-			case 1:
-				logLevel = '<span class="label alert">[ERROR]</span>';
-			break;
-			case 2:
-				logLevel = '<span class="label warning">[WARN]</span>';
-			break;
-			case 3:
-				logLevel = '<span class="label primary">[INFO]</span>';
-			break;
-			default:
-				logLevel = '<span class="label primary">[INFO]</span>';
-			break;
+var CrudApp = {
+	
+	host: "+(conhost:" + dotHostId +" conhost:SYSTEM_HOST)",
+	dwrsessionid: null,
+	dwrBatchId: 1,
+	
+	getWorkflowId: function (name) {
+		switch (name) {
+			case 'publish':
+				return '000ec468-0a63-4283-beb7-fcb36c107b2f';
+			case 'unpublish':
+				return '38efc763-d78f-4e4b-b092-59cd8c579b93';
+			case 'archive':
+				return '4da13a42-5d59-480c-ad8f-94a3adf809fe';
+			case 'unarchive':
+				return 'c92f9aa1-9503-4567-ac30-d3242b54d02d';
+			case 'delete':
+				return '777f1c6b-c877-4a37-ba4b-10627316c2cc';
 		}
-	} else {
-		logLevel = '<span class="label primary">[INFO]</span>';
-	}
-	out += timestamp + '&nbsp;' + logLevel + '&nbsp;' + text + '</p>';
+	},
 
-	$(logWindow).html( out + $(logWindow).html() );
-}
-
-CrudApp.sessionLog.openLogWindow = function () {
-	$('#logWindow').foundation('open');
-}
-
-
-CrudApp.dwrsessionid = null;
-CrudApp.dwrBatchId = 1;
-CrudApp.hasEntityList = function (data) {
-	if (data.hasOwnProperty('entity') && data.entity) {
-		if (Object.prototype.toString.call(data.entity) === '[object Array]') {
-			return true;
-		}
-	}
-	return false;
-}
-
-CrudApp.getStructureDataMerged = function () {
-	if (CrudApp.structuresMerged === false && Array.isArray(CrudApp.CT) && Array.isArray(CrudApp.fields)) {
-
-	} else if (Array.isArray(CrudApp.structureData)) {
-		return CrudApp.structureData;
-	}
-	return CrudApp.structureData;
-}
-
-CrudApp.jsonFields = function (data, stName, enabledFields) {
-	var out = '';
-	out += "'stName':" + "'" + stName + "'";
-	for (var i = 0; i < enabledFields.length; i++) {
-		if (typeof data[enabledFields[i]] === 'object') {
-			out += ",'" + enabledFields[i] + "':" + "'" + JSON.stringify(data[enabledFields[i]]).replace(/\'/g, '\\\'' ).replace(/\"/g, '\\\'') + "'";
-		} else {
-			if (typeof data[enabledFields[i]] === 'string') {
-				out += ",'" + enabledFields[i] + "':" + "'" + data[enabledFields[i]].replace(/\n/gm, '\\n') + "'";
-			} else {
-				if (typeof data[enabledFields[i]] === 'undefined') {
-					out += ",'" + enabledFields[i] + "':" + 'null';
-				} else if (typeof data[enabledFields[i]] === 'number' || typeof data[enabledFields[i]] === 'boolean') {
-					out += ",'" + enabledFields[i] + "':" + data[enabledFields[i]];
-				}
+	hasEntityList: function (data) {
+		if (data.hasOwnProperty('entity') && data.entity) {
+			if (Object.prototype.toString.call(data.entity) === '[object Array]') {
+				return true;
 			}
 		}
-	}
-	return out;
-}
+		return false;
+	},
+	
+	getStructureDataMerged: function () {
+		if (CrudApp.structuresMerged === false && Array.isArray(CrudApp.CT) && Array.isArray(CrudApp.fields)) {
+	
+		} else if (Array.isArray(CrudApp.structureData)) {
+			return CrudApp.structureData;
+		}
+		return CrudApp.structureData;
+	},
 
-CrudApp.cURLOutput = function (data, stName, enabledFields) {
-	var out = '';
-	data.forEach(function (element) {
-		out += 'curl -i -v -n -XPUT -H "Content-Type:application/json" -d "{';
-		out += CrudApp.jsonFields(element, stName, enabledFields);
-		out += '};" ';
-		out += 'https://' + location.host + '/api/content/publish/1';
-		out += "\n";
-	});
-	return out;
-}
-
-CrudApp.csvFields = function (data, stName, enabledFields) {
-	var out = '';
-	out += stName;
-	for (var i = 0; i < enabledFields.length; i++) {
-		if (typeof data[enabledFields[i]] === 'object') {
-			out += ',"' + JSON.stringify(data[enabledFields[i]]).replace(/\"/g,"'") + '"';
-		} else {
-			if (typeof data[enabledFields[i]] === 'string' && data[enabledFields[i]].indexOf(',') > -1) {
-				out += ',"' + data[enabledFields[i]].replace(/\n/gm, '\\n') + '"';
-			} else {
-				if (typeof data[enabledFields[i]] === 'undefined') {
-					out += ',';
+	// Text Manipulation
+	textUtils: {
+		jsonFields: function (data, stName, enabledFields) {
+			var out = '';
+			out += "'stName':" + "'" + stName + "'";
+			for (var i = 0; i < enabledFields.length; i++) {
+				if (typeof data[enabledFields[i]] === 'object') {
+					out += ",'" + enabledFields[i] + "':" + "'" + JSON.stringify(data[enabledFields[i]]).replace(/\'/g, '\\\'' ).replace(/\"/g, '\\\'') + "'";
 				} else {
 					if (typeof data[enabledFields[i]] === 'string') {
-						out += ',' + data[enabledFields[i]].replace(/\n/gm, '\\n');
+						out += ",'" + enabledFields[i] + "':" + "'" + data[enabledFields[i]].replace(/\n/gm, '\\n') + "'";
 					} else {
-						out += ',' + data[enabledFields[i]];
+						if (typeof data[enabledFields[i]] === 'undefined') {
+							out += ",'" + enabledFields[i] + "':" + 'null';
+						} else if (typeof data[enabledFields[i]] === 'number' || typeof data[enabledFields[i]] === 'boolean') {
+							out += ",'" + enabledFields[i] + "':" + data[enabledFields[i]];
+						}
 					}
 				}
 			}
-		}
-	}
-	return out;
-}
+			return out;
+		},
 
-CrudApp.csvOutput = function (data, stName, enabledFields) {
-	var out = 'stName';
-	enabledFields.forEach (function (element) {
-		out += ',' + element;
-	});
-	out += "\n";
-	data.forEach(function (element) {
-		out += CrudApp.csvFields(element, stName, enabledFields);
-		out += "\n";
-	});
-	return out;
-}
-
-CrudApp.tableFields = function (data, stName, enabledFields) {
-	var out = '';
-	out +=  '<td>' + stName + '</td>';
-	for (var i = 0; i < enabledFields.length; i++) {
-		out += '<td>' + data[enabledFields[i]] + '</td>';
-	}
-	return out;
-}
-
-CrudApp.tableOutput = function (data, stName, enabledFields) {
-	var out = '';
-	out += '<table>' + "\n";
-	out += '<thead><tr>' + "\n";
-	out += '<th>' + 'stName' + '</th>';
-	enabledFields.forEach (function (element) {
-		out += '<th>' + element + '</th>';
-	});
-	out += '</tr></thead>' + "\n";
-	out += '<tbody>' + "\n";
-	data.forEach(function (element) {
-		out += '<tr>';
-		out += CrudApp.tableFields(element, stName, enabledFields);
-		out += '</tr>' + "\n";
-	});
-	out += '</tbody>' + "\n";
-	out += '</table>' + "\n";
-	return out;
-}
-
-
-CrudApp.util = {};
-
-CrudApp.util.pruneInodes = function (identifier) {
-	CrudApp.sessionLog.addEntry("Getting list of inodes for " + identifier, 3);
-	var inodeList = [];
-	var inodesToDelete = [];
-	$.ajax({
-		method: 'GET',
-		url: '/html/portlet/ext/contentlet/contentlet_versions_inc.jsp?contentletId=' + identifier,
-		contentType: 'text/html',
-		success: function (data) {
-			console.log('Retrieved list success, parsing data...');
-			$('#data-dump').html(data);
-			$('#data-dump .listingTable tr').each(function () {
-				$(this).children('td:last-child').each(function () {
-					if ($(this).parent('tr').children("td:nth-child(2)").text().indexOf("Working Version") === -1) {
-						inodeList.push($(this).text());
-					}
-				});
+		cURLOutput: function (data, stName, enabledFields) {
+			var out = '';
+			data.forEach(function (element) {
+				out += 'curl -i -v -n -XPUT -H "Content-Type:application/json" -d "{';
+				out += CrudApp.textUtils.jsonFields(element, stName, enabledFields);
+				out += '};" ';
+				out += 'https://' + location.host + '/api/content/publish/1';
+				out += "\n";
 			});
-			
-			if (inodeList.length > 0) {
-				CrudApp.sessionLog.addEntry("Have inode list for " + identifier, 3);
-				CrudApp.util.pruneInodesQueue(inodeList);
-			} else {
-				CrudApp.sessionLog.addEntry("Unable to find non-working version inodes for " + identifier, 2);
+			return out;
+		},
+		
+		csvFields: function (data, stName, enabledFields) {
+			var out = '';
+			out += stName;
+			for (var i = 0; i < enabledFields.length; i++) {
+				if (typeof data[enabledFields[i]] === 'object') {
+					out += ',"' + JSON.stringify(data[enabledFields[i]]).replace(/\"/g,"'") + '"';
+				} else {
+					if (typeof data[enabledFields[i]] === 'string' && data[enabledFields[i]].indexOf(',') > -1) {
+						out += ',"' + data[enabledFields[i]].replace(/\n/gm, '\\n') + '"';
+					} else {
+						if (typeof data[enabledFields[i]] === 'undefined') {
+							out += ',';
+						} else {
+							if (typeof data[enabledFields[i]] === 'string') {
+								out += ',' + data[enabledFields[i]].replace(/\n/gm, '\\n');
+							} else {
+								out += ',' + data[enabledFields[i]];
+							}
+						}
+					}
+				}
 			}
+			return out;
+		},
+
+		csvOutput: function (data, stName, enabledFields) {
+			var out = 'stName';
+			enabledFields.forEach (function (element) {
+				out += ',' + element;
+			});
+			out += "\n";
+			data.forEach(function (element) {
+				out += CrudApp.textUtils.csvFields(element, stName, enabledFields);
+				out += "\n";
+			});
+			return out;
+		},
+	
+		tableFields: function (data, stName, enabledFields) {
+			var out = '';
+			out +=  '<td>' + stName + '</td>';
+			for (var i = 0; i < enabledFields.length; i++) {
+				out += '<td>' + data[enabledFields[i]] + '</td>';
+			}
+			return out;
+		},
+	
+		tableOutput: function (data, stName, enabledFields) {
+			var out = '';
+			out += '<table>' + "\n";
+			out += '<thead><tr>' + "\n";
+			out += '<th>' + 'stName' + '</th>';
+			enabledFields.forEach (function (element) {
+				out += '<th>' + element + '</th>';
+			});
+			out += '</tr></thead>' + "\n";
+			out += '<tbody>' + "\n";
+			data.forEach(function (element) {
+				out += '<tr>';
+				out += CrudApp.textUtils.tableFields(element, stName, enabledFields);
+				out += '</tr>' + "\n";
+			});
+			out += '</tbody>' + "\n";
+			out += '</table>' + "\n";
+			return out;
 		}
-	});
-}
 
-CrudApp.util.pruneInodesQueue = function (inodes) {
-	CrudApp.sessionLog.addEntry("Starting queue for inode list..." + inodes.toString(), 3);
-	console.log(inodes);
-	for (var i = 0; i < inodes.length; i++) {
-		CrudApp.util.deleteInode(inodes[i], (i * 250));
-	}
-}
+	},
+	
 
-CrudApp.util.deleteInode = function (inode, timeout) {
-	CrudApp.sessionLog.addEntry("Queueing: " + inode, 3);
-	setTimeout(function () {
+
+
+
+
+
+
+	logout: function () {
 		$.ajax({
+			url: '/api/v1/logout',
 			method: 'GET',
-			url: '/c/portal/layout?p_l_id=b7ab5d3c-5ee0-4195-a17e-8f5579d718dd&p_p_id=site-browser&p_p_action=1&p_p_state=maximized&p_p_mode=view&_site_browser_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&cmd=deleteversion&&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3Db7ab5d3c-5ee0-4195-a17e-8f5579d718dd&inode=' + inode,
-			contentType: 'text/html',
-			success: function (data) {
-				CrudApp.sessionLog.addEntry("Deleted inode: " + inode, 3);
+			success: function () {
+				location.href = '/';
 			},
-			error: function (xhr, status, error) {
-				CrudApp.sessionLog.addEntry("inode delete failed: " + inode, 1);
+			error: function () {
+				location.href = "/apit/v1/logout"
 			}
 		});
-	}, timeout);
-}
+	},
 
+	sessionLog: {
+		addEntry: function (text, level) {
+			var logWindow = $('#session-log');
+			var out = String('<p class="log-entry">');
+			var timestamp = moment().format("DD-MMM YYYY HH:mm:ss");
+			var logLevel = String('');
+			if (typeof level != 'undefined') {
+				switch (level) {
+					case 0:
+						logLevel = '<span class="label alert">[SEVERE]</span>';
+					break;
+					case 1:
+						logLevel = '<span class="label alert">[ERROR]</span>';
+					break;
+					case 2:
+						logLevel = '<span class="label warning">[WARN]</span>';
+					break;
+					case 3:
+						logLevel = '<span class="label primary">[INFO]</span>';
+					break;
+					default:
+						logLevel = '<span class="label primary">[INFO]</span>';
+					break;
+				}
+			} else {
+				logLevel = '<span class="label primary">[INFO]</span>';
+			}
+			out += timestamp + '&nbsp;' + logLevel + '&nbsp;' + text + '</p>';
+		
+			$(logWindow).html( out + $(logWindow).html() );
+		},
+		openLogWindow: function () {
+			$('#logWindow').foundation('open');
+		}
+	
+	}
+
+};
+
+CrudApp.util = {
+
+	pruneInodes: function (identifier) {
+		CrudApp.sessionLog.addEntry("Getting list of inodes for " + identifier, 3);
+		var inodeList = [];
+		var inodesToDelete = [];
+		$.ajax({
+			method: 'GET',
+			url: '/html/portlet/ext/contentlet/contentlet_versions_inc.jsp?contentletId=' + identifier,
+			contentType: 'text/html',
+			success: function (data) {
+				console.log('Retrieved list success, parsing data...');
+				$('#data-dump').html(data);
+				$('#data-dump .listingTable tr').each(function () {
+					$(this).children('td:last-child').each(function () {
+						if ($(this).parent('tr').children("td:nth-child(2)").text().indexOf("Working Version") === -1) {
+							inodeList.push($(this).text());
+						}
+					});
+				});
+				
+				if (inodeList.length > 0) {
+					CrudApp.sessionLog.addEntry("Have inode list for " + identifier, 3);
+					CrudApp.util.pruneInodesQueue(inodeList);
+				} else {
+					CrudApp.sessionLog.addEntry("Unable to find non-working version inodes for " + identifier, 2);
+				}
+			}
+		});
+	},
+
+	pruneInodesQueue: function (inodes) {
+		CrudApp.sessionLog.addEntry("Starting queue for inode list..." + inodes.toString(), 3);
+		console.log(inodes);
+		for (var i = 0; i < inodes.length; i++) {
+			CrudApp.util.deleteInode(inodes[i], (i * 250));
+		}
+	},
+
+	deleteInode: function (inode, timeout) {
+		CrudApp.sessionLog.addEntry("Queueing: " + inode, 3);
+		setTimeout(function () {
+			$.ajax({
+				method: 'GET',
+				url: '/c/portal/layout?p_l_id=b7ab5d3c-5ee0-4195-a17e-8f5579d718dd&p_p_id=site-browser&p_p_action=1&p_p_state=maximized&p_p_mode=view&_site_browser_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&cmd=deleteversion&&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3Db7ab5d3c-5ee0-4195-a17e-8f5579d718dd&inode=' + inode,
+				contentType: 'text/html',
+				success: function (data) {
+					CrudApp.sessionLog.addEntry("Deleted inode: " + inode, 3);
+				},
+				error: function (xhr, status, error) {
+					CrudApp.sessionLog.addEntry("inode delete failed: " + inode, 1);
+				}
+			});
+		}, timeout);
+	}
+
+};
 
 Vue.component('contentManager', {
 	template: '#content-manager',
@@ -270,20 +313,7 @@ Vue.component('contentList', {
 		}
 	},
 	methods: {
-		getWorkflowId: function () {
-			switch (this.actionSelected) {
-				case 'publish':
-					return '000ec468-0a63-4283-beb7-fcb36c107b2f';
-				case 'unpublish':
-					return '38efc763-d78f-4e4b-b092-59cd8c579b93';
-				case 'archive':
-					return '4da13a42-5d59-480c-ad8f-94a3adf809fe';
-				case 'unarchive':
-					return 'c92f9aa1-9503-4567-ac30-d3242b54d02d';
-				case 'delete':
-					return '777f1c6b-c877-4a37-ba4b-10627316c2cc';
-			}
-		},
+
 		invertSelected: function () {
 			for (var i = 0; i < this.results.length; i++) {
 				if (this.selectedContentlets.indexOf(this.results[i].inode) === -1) {
@@ -347,7 +377,7 @@ Vue.component('contentList', {
 		},
 		confirmAction: function () {
 			var vm = this;
-			CrudApp.sessionLog.openLogWindow();
+			// CrudApp.sessionLog.openLogWindow();
 			
 			// Pruning inodes is a different process than applying workflow actions
 			if (this.actionSelected === 'prune') {
@@ -374,7 +404,7 @@ Vue.component('contentList', {
 								'c0-id=0' + "\n" +
 								'c0-param0=string:' + "\n" +
 								'c0-param1=string:' + "\n" +
-								'c0-param2=string:' + this.getWorkflowId() + "\n" + // Workflow Id
+								'c0-param2=string:' + CrudApp.getWorkflowId(this.actionSelected) + "\n" + // Workflow Id
 								'c0-param3=string:' + "\n" +
 								'c0-param4=string:' + this.selectedContentlets[i] + "\n" +	// Contentlet Inode
 								'c0-param5=string:' + "\n" +
@@ -545,7 +575,7 @@ Vue.component('queryBox', {
 						this.getExportData();
 					} else {
 						this.exportData = this.syncFieldPreferences(data.contentlets);
-						this.exportData = CrudApp.cURLOutput(this.exportData, this.selectedCT, this.exportOptions.fields);
+						this.exportData = CrudApp.textUtils.cURLOutput(this.exportData, this.selectedCT, this.exportOptions.fields);
 					}
 				} else if (this.exportFormat == 'csv') {
 					this.exportOptions.view = 'plain';
@@ -553,7 +583,7 @@ Vue.component('queryBox', {
 						this.getExportData();
 					} else {
 						this.exportData = this.syncFieldPreferences(data.contentlets);
-						this.exportData = CrudApp.csvOutput(this.exportData, this.selectedCT, this.exportOptions.fields);
+						this.exportData = CrudApp.textUtils.csvOutput(this.exportData, this.selectedCT, this.exportOptions.fields);
 					}
 				} else if (this.exportFormat == 'table') {
 					this.exportOptions.view = 'html';
@@ -561,7 +591,7 @@ Vue.component('queryBox', {
 						this.getExportData();
 					} else {
 						this.exportData = this.syncFieldPreferences(data.contentlets);
-						this.exportData = CrudApp.tableOutput(this.exportData, this.selectedCT, this.exportOptions.fields);
+						this.exportData = CrudApp.textUtils.tableOutput(this.exportData, this.selectedCT, this.exportOptions.fields);
 					}
 				}
 			}
@@ -650,7 +680,7 @@ Vue.component('queryImportBox', {
 			});
 		},
 		importQueue: function () {
-			CrudApp.sessionLog.openLogWindow();
+			// CrudApp.sessionLog.openLogWindow();
 			CrudApp.sessionLog.addEntry("importQueue(): Starting Import Queue", 3);
 			var vm = this;
 			if (this.textData && typeof this.textData === "string" && this.textData.length > 0) {
@@ -742,95 +772,81 @@ Vue.component('import-form', {
 	},
 	methods: {
 		generateFormMetadata: function () {
-			var tmpObj = [];
-			for (var i = 0; i < this.selectedCT.fields.length; i++) {
+			this.importForm = [];
+			for (var i = 0; i < this.currentCT.fields.length; i++) {
 				
-				switch (this.selectedCT.fields[i].clazz) {
-					
-					// Text
-					case "com.dotcms.contenttype.model.field.ImmutableTextField":
-						tmpObj.push(
-							{
-								"name": "",
-								"value": "",
-								"variable": ""
-							}
-						);
-					break;
-
-					// Textarea
-					case "com.dotcms.contenttype.model.field.ImmutableTextAreaField":
-
-					break;
-					
-					// Date/time
-					case "com.dotcms.contenttype.model.field.ImmutableDateTimeField":
-
-					break;
-					
-					// WYSIWYG
-					case "com.dotcms.contenttype.model.field.ImmutableWysiwygField":
-
-					break;
-
-					// Radio
-					case "com.dotcms.contenttype.model.field.ImmutableRadioField":
-
-					break;
-
-					// Select
-					case "com.dotcms.contenttype.model.field.ImmutableSelectField":
-						
-					break;
-
-					// Checkbox
-					case "com.dotcms.contenttype.model.field.ImmutableCheckboxField":
-
-					break;
-
-					// Folder 
-					case "com.dotcms.contenttype.model.field.ImmutableHostFolderField":
-
-					break;
-
-					// Image
-					case "com.dotcms.contenttype.model.field.ImmutableImageField":
-
-					break;
-
-					// Binary
-					case "com.dotcms.contenttype.model.field.ImmutableBinaryField":
-
-					break;
-
-					// Tags
-					case "com.dotcms.contenttype.model.field.ImmutableTagField":
-
-					break;
-
-					// Key/Value
-					case "com.dotcms.contenttype.model.field.ImmutableKeyValueField":
-
-					break;
-
-					// Custom
-					case "com.dotcms.contenttype.model.field.ImmutableCustomField":
-
-					break;
-
-					// Hidden
-					case "com.dotcms.contenttype.model.field.ImmutableHiddenField":
-
-					break;
+				if (this.currentCT.fields[i].dataType == 'TEXT' || this.currentCT.fields[i].dataType == 'INTEGER' || this.currentCT.fields[i].dataType == 'FLOAT' ) {
+					if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableDateTimeField") {
+						this.importForm.push({
+							ele: "input",
+							type: "datetime",
+							size: "small-4",
+							id: this.currentCT.fields[i].variable,
+							label: this.currentCT.fields[i].name,
+							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+							value: null
+						});
+					} else if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableDateTimeField") {
+						this.importForm.push({
+							ele: "input",
+							type: "datetime",
+							size: "small-4",
+							id: this.currentCT.fields[i].variable,
+							label: this.currentCT.fields[i].name,
+							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+							value: null
+						});					
+					} else {
+						this.importForm.push({
+							ele: "input",
+							type: "text",
+							size: "small-4",
+							id: this.currentCT.fields[i].variable,
+							label: this.currentCT.fields[i].name,
+							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+							value: null
+						});
+					}
+				} else if (this.currentCT.fields[i].dataType == 'LONG_TEXT') {
+					this.importForm.push({
+						ele: "textarea",
+						type: "textarea",
+						size: "small-9",
+						id: this.currentCT.fields[i].variable,
+						label: this.currentCT.fields[i].name,
+						fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+						value: null
+					});
+				} else if (this.currentCT.fields[i].dataType == 'SYSTEM') {
+					if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableHostFolderField") {
+						this.importForm.push({
+							ele: "input",
+							type: "text",
+							size: "small-4",
+							id: this.currentCT.fields[i].variable,
+							label: this.currentCT.fields[i].name,
+							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+							value: null
+						});
+					}
 				}
+				
 			}
 		}
 	},
-	watch: {
-		selectedCT: function () {
-			
+	mounted: function () {
+			this.generateFormMetadata();
+	},
+	computed: {
+		currentCT: function () {
+			return this.selectedCT;
 		}
-	} 
+	},
+	watch: {
+		currentCT: function (val) {
+			this.generateFormMetadata();
+		}
+	}
 });
 
 
@@ -863,7 +879,7 @@ Vue.component('structureImportBox', {
 			return jsonData;
 		},
 		importStructureJson: function () {
-			CrudApp.sessionLog.openLogWindow();
+			// CrudApp.sessionLog.openLogWindow();
 			CrudApp.sessionLog.addEntry("structureImportBox importStructureJson(): Starting CT import", 3);
 			var vm = this;
 			var importObj = this.getImportText();
@@ -1381,3 +1397,23 @@ function vcSendQuery() {
 		vcSendOutput($("#ConsoleQuery").val());
 	}
 }
+
+
+
+/*
+Field Types Ref:
+Text		com.dotcms.contenttype.model.field.ImmutableTextField
+Textarea	com.dotcms.contenttype.model.field.ImmutableTextAreaField					
+Date/time	com.dotcms.contenttype.model.field.ImmutableDateTimeField					
+WYSIWYG		com.dotcms.contenttype.model.field.ImmutableWysiwygField
+Radio		com.dotcms.contenttype.model.field.ImmutableRadioField
+Select		com.dotcms.contenttype.model.field.ImmutableSelectField
+Checkbox	com.dotcms.contenttype.model.field.ImmutableCheckboxField
+Folder 		com.dotcms.contenttype.model.field.ImmutableHostFolderField
+Image		com.dotcms.contenttype.model.field.ImmutableImageField
+Binary		com.dotcms.contenttype.model.field.ImmutableBinaryField
+Tags		com.dotcms.contenttype.model.field.ImmutableTagField
+Key/Value	com.dotcms.contenttype.model.field.ImmutableKeyValueField
+Custom		com.dotcms.contenttype.model.field.ImmutableCustomField
+Hidden		com.dotcms.contenttype.model.field.ImmutableHiddenField
+*/

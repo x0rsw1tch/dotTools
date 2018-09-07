@@ -1,3 +1,4 @@
+<%@page import="com.liferay.portal.model.*"%>
 <%@page import="com.dotmarketing.util.PortletID"%>
 <%@page import="com.dotmarketing.portlets.structure.model.Field"%>
 <%@page import="com.dotmarketing.util.UtilMethods"%>
@@ -16,9 +17,14 @@
 <%@page import="com.dotmarketing.portlets.structure.business.FieldAPI"%>
 <%@page import="com.dotmarketing.util.VelocityUtil"%>
 <%@page import="com.dotmarketing.business.web.WebAPILocator"%>
-
-<% if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) { %>
-
+<%@page import="com.dotmarketing.business.RoleAPI"%>
+<%@page import="com.dotmarketing.portlets.contentlet.business.HostAPI"%>
+<%@page import="com.dotmarketing.business.PermissionAPI"%>
+<%@page import="com.dotmarketing.beans.Host"%>
+<% 
+String hostId = (String) session.getAttribute(com.dotmarketing.util.WebKeys.CMS_SELECTED_HOST_ID);
+if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) { 
+%>
 <!doctype html>
 <html class="no-js" lang="en_US">
 <!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
@@ -48,49 +54,55 @@
 <body>
 
 	<div id="crud-app">
-		<div class="grid-y">
+		<div class="grid-y medium-grid-frame">
 
-			<div class="cell shrink header medium-cell-block-container">
+			<div class="cell small-1 header medium-cell-block-container">
 				<nav class="hover-underline-menu" data-menu-underline-from-center="data-menu-underline-from-center">
 					<ul class="menu">
-						<a v-on:click="setPane('default')">dotTools</a>
+						<li><a v-bind:class="{'nav-active': navItemActive('default')}" v-on:click="setPane('default')">dotTools</a></li>
 					</ul>
 					<ul class="menu">
+						<li>
+							<a v-bind:class="{'nav-active': navItemActive('content-manager')}" v-on:click="setPane('content-manager')">Content Manager</a>
+						</li>
 						<li>
 							<a v-bind:class="{'nav-active': navItemActive('console')}" v-on:click="setPane('console')">Console</a>
 						</li>
 						<li>
-							<a v-bind:class="{'nav-active': navItemActive('import')}" v-on:click="setPane('content-import')">Content Import</a>
+							<a v-bind:class="{'nav-active': navItemActive('content-import')}" v-on:click="setPane('content-import')">Content Import</a>
 						</li>
 						<li>
-							<a v-bind:class="{'nav-active': navItemActive('export')}" v-on:click="setPane('content-export')">Content Export</a>
+							<a v-bind:class="{'nav-active': navItemActive('content-export')}" v-on:click="setPane('content-export')">Content Export</a>
 						</li>
 						<li>
-							<a v-bind:class="{'nav-active': navItemActive('export')}" v-on:click="setPane('structure-export')">CT Export</a>
+							<a v-bind:class="{'nav-active': navItemActive('structure-export')}" v-on:click="setPane('structure-export')">CT Export</a>
 						</li>
 						<li>
-							<a v-bind:class="{'nav-active': navItemActive('export')}" v-on:click="setPane('structure-import')">CT Import</a>
+							<a v-bind:class="{'nav-active': navItemActive('structure-import')}" v-on:click="setPane('structure-import')">CT Import</a>
 						</li>
 						<li>
-							<a v-bind:class="{'nav-active': navItemActive('export')}" v-on:click="setPane('api')">API</a>
+							<a v-bind:class="{'nav-active': navItemActive('api')}" v-on:click="setPane('api')">API</a>
 						</li>
-						<li>
+						<%-- <li>
 							<a v-bind:class="{'nav-active': navItemActive('export')}" data-open="logWindow">Log</a>
-						</li>
+						</li> --%>
 					</ul>
 					<ul class="menu">
-						<li><a href="/api/v1/logout">Logout</a></li>
+						<li><a href="#" onclick="CrudApp.logout();">Logout</a></li>
 					</ul>
 				</nav>
 			</div>
 
-			<div class="cell medium-12 medium-cell-block-y">
+			<div class="cell small-9 medium-cell-block-y">
 
 
 				<div v-if="pane == 'default'">
-					<content-manager :ct="ct" :users="users"></content-manager>
+					
 				</div>
 
+				<div v-if="pane == 'content-manager'">
+					<content-manager :ct="ct" :users="users"></content-manager>
+				</div>
 
 				<div v-if="pane == 'console'">
 					<div class="console-wrapper">
@@ -150,22 +162,24 @@
 				</div>
 			</div>
 
-		</div>
-	
-		<div class="reveal large" id="logWindow" data-reveal>
-			<h3>Session Log</h3>
-			<div id="session-log">
+			<div class="cell small-2 footer medium-cell-block-y" style="margin-top:1rem;">
+				<div id="session-log"></div>
 			</div>
-			<button class="close-button" data-close aria-label="Close modal" type="button">
-    			<span aria-hidden="true">&times;</span>
-  			</button>
+
 		</div>
-	
 	
 	</div>
 
+<%-- <div class="reveal large" id="logWindow" data-reveal>
+	<h3>Session Log</h3>
 
-	<script type="text/x-template" id="content-manager">
+	<button class="close-button" data-close aria-label="Close modal" type="button">
+		<span aria-hidden="true">&times;</span>
+	</button>
+</div> --%>
+
+
+<script type="text/x-template" id="content-manager">
 		<div>
 		<h5 class="text-center">Content Manager</h5>
 
@@ -199,8 +213,8 @@
 	</div>
 </script>
 
-	<script type="text/x-template" id="content-list">
-		<div>
+<script type="text/x-template" id="content-list">
+	<div>
 		<div v-if="results">
 			
 			<div class="grid-x grid-padding-x">
@@ -255,8 +269,8 @@
 
 
 
-	<script type="text/x-template" id="query-box">
-		<div>
+<script type="text/x-template" id="query-box">
+	<div>
 		<p v-if="importErrors"><span class="label alert">{{ importErrors }}</span></p>
 		<div class="grid-container full">
 			<div class="grid-x grid-padding-x">
@@ -303,8 +317,8 @@
 	</div>
 </script>
 
-	<script type="text/x-template" id="query-import-box">
-		<div>
+<script type="text/x-template" id="query-import-box">
+	<div>
 		<div class="grid-container full">
 			<div class="grid-x grid-padding-x">
 				<div class="cell small-3 align-self-middle">
@@ -373,21 +387,31 @@
 	</div>
 </script>
 
-	<script type="text/x-template" id="import-form">
-		<div v-if="importForm">
+<script type="text/x-template" id="import-form">
+	<div v-if="importForm">
 
-		<div class="grid-container full">
-			<div class="grid-x grid-padding-x">
-				<div class="cell auto align-self-middle" v-for="(element, index) in importForm" v-if="(importOptions.inMode === 'POST' && element.variable != 'identifier')">
-					<div>
-						<label>{{ element.name }}
-							<input type="text" v-model="element.value" :name="element.variable" :placeholder="element.name">
-						</label>
+		<form>
+			<div class="grid-container full">
+				<div class="grid-x grid-padding-x">
+					<div v-for="(element, index) in importForm" class="cell align-self-middle" v-if="(importOptions.inMode === 'POST')" :class="element.size">
+						
+						
+						<div v-if="element.ele == 'input'">
+							<label>{{ element.label }} ({{ element.fieldType }}) [{{ element.id }}]
+								<input :type="element.type" v-model="element.value" :name="element.id" :placeholder="element.label">
+							</label>
+						</div>
+						<div v-if="element.ele == 'textarea'">
+							<label>{{ element.label }}
+								<textarea class="textarea-form" :name="element.id" v-model="element.value"></textarea>
+							</label>
+						</div>
+
+						
 					</div>
 				</div>
 			</div>
-		</div>
-
+		</form>
 	</div>
 </script>
 
@@ -399,7 +423,7 @@
 </script>
 
 <script type="text/x-template" id="structure-import-box">
-		<div>
+	<div>
 		<p v-if="importErrors"><span class="label alert">{{ importErrors }}</span></p>
 		<div class="cell auto align-self-middle">
 			<label>Import Mode</label>
@@ -417,8 +441,7 @@
 </script>
 
 <script type="text/x-template" id="structure-export-box">
-		<div>
-
+	<div>
 		<h5	class="text-center">Export Content Type</h5>
 		<div class="grid-container full">
 			<div class="grid-x grid-padding-x">
@@ -437,7 +460,6 @@
 			<textarea class="textarea-data" wrap="off">{{structureExportData}}</textarea>
 		</div>
 	</div>
-
 </script>
 
 
@@ -477,24 +499,23 @@
 </script>
 
 
-	<div id="data-dump" style="display:none;"></div>
+<div id="data-dump" style="display:none;"></div>
 
 
-	<script src="js/jquery.js"></script>
-	<script src="js/moment.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
-	<script src="js/foundation.js"></script>
-	<script src="js/vue.js"></script>
-	<script>
-		$(document).foundation();
-		document.addEventListener("DOMContentLoaded", function (e) {
-			$("[data-menu-underline-from-center] a").addClass("underline-from-center");
-		});
-		var CrudApp = {};
-
-		CrudApp.host = "+(conhost:48190c8c-42c4-46af-8d1a-0cd5db894797 conhost:SYSTEM_HOST)";
-	</script>
-	<script src="js/dot-tools.js"></script>
+<script src="js/jquery.js"></script>
+<script src="js/moment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
+<script src="js/foundation.js"></script>
+<script src="js/vue.js"></script>
+<script>
+	$(document).foundation();
+	document.addEventListener("DOMContentLoaded", function (e) {
+		$("[data-menu-underline-from-center] a").addClass("underline-from-center");
+	});
+	var dotHostId = "<%=hostId%>";
+	
+</script>
+<script src="js/dot-tools.js"></script>
 </body>
 
 </html>
