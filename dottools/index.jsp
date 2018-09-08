@@ -56,17 +56,17 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	<div id="crud-app">
 		<div class="grid-y medium-grid-frame">
 
-			<div class="cell small-1 header medium-cell-block-container">
+			<div class="cell shrink header medium-cell-block-container" style="margin-bottom:0.5rem;">
 				<nav class="hover-underline-menu" data-menu-underline-from-center="data-menu-underline-from-center">
 					<ul class="menu">
 						<li><a v-bind:class="{'nav-active': navItemActive('default')}" v-on:click="setPane('default')">dotTools</a></li>
 					</ul>
 					<ul class="menu">
 						<li>
-							<a v-bind:class="{'nav-active': navItemActive('content-manager')}" v-on:click="setPane('content-manager')">Content Manager</a>
+							<a v-bind:class="{'nav-active': navItemActive('console')}" v-on:click="setPane('console')">Console</a>
 						</li>
 						<li>
-							<a v-bind:class="{'nav-active': navItemActive('console')}" v-on:click="setPane('console')">Console</a>
+							<a v-bind:class="{'nav-active': navItemActive('content-manager')}" v-on:click="setPane('content-manager')">Manager</a>
 						</li>
 						<li>
 							<a v-bind:class="{'nav-active': navItemActive('content-import')}" v-on:click="setPane('content-import')">Content Import</a>
@@ -95,55 +95,15 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 
 			<div class="cell small-9 medium-cell-block-y">
 
-
 				<div v-if="pane == 'default'">
-					
-				</div>
-
-				<div v-if="pane == 'content-manager'">
-					<content-manager :ct="ct" :users="users"></content-manager>
+					<h3 class="align-self-center">Hi!</h3>
 				</div>
 
 				<div v-if="pane == 'console'">
-					<div class="console-wrapper">
-						<form>
-							<div class="grid-x grid-padding-x">
-								<div class="cell shrink">
-									<div>
-										<h5>Options</h5>
-										<input type="radio" name="outFormat" id="outFormat1" value="preformatted" checked="checked"><label for="outFormat1" title="Use preformatted output">Pre</label><br>
-										<input type="radio" name="outFormat" id="outFormat2" value="html" /><label for="outFormat2" title="Outputs as HTML">HTML</label><br>
-										<input type="checkbox" name="vtlProcess" id="vtlProcess" checked="checked" value="1"><label for="vtlProcess" code="Prcoess Velocity">Vel</label><br>
-										<input type="checkbox" name="liveUpdate" id="liveUpdate" onclick="vcLiveUpdater()" value="1"><label for="liveUpdate" onclick="vcLiveUpdater()" title="Live update">Live</label><br>
-										<input type="checkbox" name="enableLogging" id="enableLogging" value="1"><label for="enableLogging" title="Enable Logging">Log</label><br>
-										<p><a class="button console-send" onclick="vcSendQuery()">Run</a></p>
-										<span id="bench"></span>
-									</div>
-								</div>
-								<div class="cell auto small-grid-collapse-x">
-									<textarea class="velocity-console" name="ConsoleQuery" id="ConsoleQuery" rows="10" cols="60" spellcheck="false"></textarea>
-									<div id="spinnerConsole" class="loader hide"></div>
-									<span id="flood-alert" class="hide" style="color:#FF3333;">Flood control triggered... Delaying XHR by 1sec</span>
-								</div>
-							</div>
-						</form>
-						<div class="velocity-output-pre hide" contentEditable="true"></div>
-						<div class="velocity-output hide"></div>
-						<div class="helpful-area">
-							<div class="console-history">
-								<h2>History</h2>
-								<div id="history"></div>
-							</div>
-							<div class="console-snippets">
-								<div id="snippet-markdown"></div>
-							</div>
-						</div>
-					</div>
-
-					<div style="display:none;" id="markdown">
-
-					</div>
-
+					<velocity-console :ct="ct" :users="users"></velocity-console>
+				</div>	
+				<div v-if="pane == 'content-manager'">
+					<content-manager :ct="ct" :users="users"></content-manager>
 				</div>
 				<div v-if="pane == 'content-import'">
 					<query-import-box :ct="ct"></query-import-box>
@@ -170,14 +130,42 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	
 	</div>
 
-<%-- <div class="reveal large" id="logWindow" data-reveal>
-	<h3>Session Log</h3>
 
-	<button class="close-button" data-close aria-label="Close modal" type="button">
-		<span aria-hidden="true">&times;</span>
-	</button>
-</div> --%>
+<script type="text/x-template" id="velocity-console">
+	<div>
 
+		<div class="grid-x">
+			<div class="cell shrink">
+				<label title="Use preformatted output"><input type="radio" name="outFormat" value="preformatted" v-model="outputFormat">Pre</label>
+				<label title="Use HTML format"><input type="radio" name="outFormat" v-model="outputFormat" value="html" />HTML</label>
+				<label title="Process Velocity"><input type="checkbox" v-model="processVelocity">Vel</label>
+				<label title="Live update"><input type="checkbox" v-model="liveUpdate">Live</label>
+				<label title="Enable Logging"><input type="checkbox" v-model="logging">Log</label>
+				<p>
+					<a class="button primary expanded" v-bind="{ disabled: floodControl }" v-on:click="sendQuery()" style="user-select: none;">Run</a>
+					<a class="button primary expanded" data-open="console-history-modal">history</a>
+				</p>
+				
+				<span v-if="bench">Last Run: {{bench}}ms</span>
+			</div>
+
+			<div class="cell auto">
+				<textarea class="velocity-console" rows="10" cols="60" spellcheck="false" v-model="consoleInput"></textarea>
+				<div v-if="loading" class="loader"></div>
+				<span v-if="floodControl" style="color:#FF3333;">Flood control triggered... Delaying XHR by 1sec</span>
+			</div>
+
+		</div>
+
+		<div class="grid-x">
+			<div class="cell small-12">
+				<div v-if="consoleOutput && outputFormat == 'preformatted'" class="velocity-output-pre" contentEditable="true">{{consoleOutput}}</div>
+				<div v-if="consoleOutput && outputFormat == 'html'" class="velocity-output" v-html="consoleOutput"></div>
+			</div>
+		</div>
+
+	</div>
+</script>
 
 <script type="text/x-template" id="content-manager">
 		<div>
@@ -273,20 +261,38 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	<div>
 		<p v-if="importErrors"><span class="label alert">{{ importErrors }}</span></p>
 		<div class="grid-container full">
-			<div class="grid-x grid-padding-x">
+			<div class="grid-x">
 					
-				<div class="cell small-5 align-self-middle">
-					<label>CT</label>
-					<select v-if="ct" v-model="selectedCT">
-						<option default value="">Select Content Type</option>
-						<option v-for="structure in ct" :value="structure.variable">{{ structure.name }}</option>
-					</select>
-					
-					<input type="text" v-model="exportOptions.query" placeholder="Query">
-					<input type="text" v-model="exportOptions.limit" placeholder="Limit" value="0">
+				<div class="cell small-8 align-self-middle">
 
-					<input type="text" v-model="exportOptions.sort" placeholder="Sort" value="modDate desc">
-					
+
+					<div class="grid-x grid-padding-x">
+						<div class="cell small-6 align-self-middle">
+							<label>CT
+							<select v-if="ct" v-model="selectedCT">
+								<option default value="">Select Content Type</option>
+								<option v-for="structure in ct" :value="structure.variable">{{ structure.name }}</option>
+							</select>
+							</label>
+						</div>
+						<div class="cell small-3 align-self-middle">
+							<label>Limit
+								<input type="text" v-model="exportOptions.limit" placeholder="Limit" value="0">
+							</label>
+						</div>
+						<div class="cell small-3 align-self-middle">
+							<label>Query
+								<input type="text" v-model="exportOptions.sort" placeholder="Sort" value="modDate desc">
+							</label>
+						</div>
+						<div class="cell small-12 align-self-middle">
+							<input type="text" v-model="exportOptions.query" placeholder="Query">
+						</div>
+					</div>
+				</div>
+
+
+				<div class="cell small-4 align-self-middle">	
 					<div id="out-format" v-if="selectedCT">
 						<label>Output Format</label>
 						<input type="radio" v-model="exportFormat" id="out_json" name="out-format" value="json" checked><label for="out_json">JSON</label>
@@ -298,11 +304,15 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 					</div>
 				</div>
 
-				<div class="cell small-7">
+				<div class="cell small-12">
 					<div id="out-fields" v-if="selectedCT">
-						<label class="field-item" v-if="fields" v-for="field in fields" :for="field.variable">
-							<input type="checkbox" v-model="exportOptions.fields"  :value="field.variable" :id="field.variable">{{ field.name }}
-						</label>
+						<div class="grid-x grid-padding-x">
+							<div class="cell large-3 medium-4 small-6" v-if="fields" v-for="field in fields">
+								<label class="field-item" :for="field.variable">
+									<input type="checkbox" v-model="exportOptions.fields"  :value="field.variable" :id="field.variable">{{ field.name }}
+								</label>
+							</div>
+						</div>
 					</div>
 				</div>
 
@@ -350,7 +360,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 				</div>
 
 				<div class="cell auto align-self-middle" v-if="ctName">
-					<a class="button small" v-on:click="importQueue()">Begin Import</a>	
+					<a class="button small" v-if="importOptions.format != 'form'" v-on:click="importQueue()">Begin Import</a>	
 				</div>
 			</div>
 		</div>
@@ -381,7 +391,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 
 		<div v-if="importOptions.format == 'form'">
 			<h4>Form Input</h4>
-			<import-form :CT="ct" :importOptions="importOptions" :selectedCT="selectedCT" :ctName="ctName"></import-form>
+			<import-form :ct="ct" :importOptions="importOptions" :selectedCT="selectedCT" :ctName="ctName"></import-form>
 		</div>
 
 	</div>
@@ -391,6 +401,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	<div v-if="importForm">
 
 		<form>
+			<input type="button" class="button primary" v-on:click="submitImportForm()">
 			<div class="grid-container full">
 				<div class="grid-x grid-padding-x">
 					<div v-for="(element, index) in importForm" class="cell align-self-middle" v-if="(importOptions.inMode === 'POST')" :class="element.size">
@@ -399,7 +410,9 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 						<div v-if="element.ele == 'input'">
 							<label>{{ element.label }} ({{ element.fieldType }}) [{{ element.id }}]
 								<input :type="element.type" v-model="element.value" :name="element.id" :placeholder="element.label">
+								<a v-if="element.fieldType == 'ImmutableHostFolderField'" class="button small primary" v-on:click="addHostId(element)">Add Host Id</a>
 							</label>
+							
 						</div>
 						<div v-if="element.ele == 'textarea'">
 							<label>{{ element.label }}
@@ -412,13 +425,16 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 				</div>
 			</div>
 		</form>
+
 	</div>
 </script>
 
 <script type="text/x-template" id="query-output">
-		<div>
-		<div v-if="exportOptions.view == 'html'" class="export-data-html" v-html="exportData"></div>
-		<textarea v-if="exportOptions.view == 'plain'" class="textarea-data" wrap="off">{{exportData}}</textarea>
+	<div class="grid-y medium-grid-frame">
+		<div class="cell small-12">
+			<div v-if="exportOptions.view == 'html'" class="export-data-html" v-html="exportData"></div>
+			<textarea v-if="exportOptions.view == 'plain'" class="textarea-data" wrap="off">{{exportData}}</textarea>
+		</div>
 	</div>
 </script>
 
@@ -498,6 +514,13 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	</div>
 </script>
 
+<div class="reveal large" id="console-history-modal" data-reveal>
+	<h4>Console History</h4>
+	<div id="console-history"></div>
+	<button class="close-button" data-close aria-label="Close modal" type="button">
+		<span aria-hidden="true">&times;</span>
+	</button>
+</div>
 
 <div id="data-dump" style="display:none;"></div>
 

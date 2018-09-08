@@ -227,12 +227,13 @@ input[type=text], textarea {
 
 label.field-item {
 	display: inline-block;
-	width: 32%;
+    font-size: 0.9rem;
+    
 }
 
 @media screen and (max-width: 64em) {
 	label.field-item {
-		width: 48.5%;
+        font-size: 1rem;
 	}
 }
 

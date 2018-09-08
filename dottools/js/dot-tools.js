@@ -1,10 +1,29 @@
 /* dotCRUD */
+
+/*
+Field Types Ref:
+Text		com.dotcms.contenttype.model.field.ImmutableTextField
+Textarea	com.dotcms.contenttype.model.field.ImmutableTextAreaField
+Date/time	com.dotcms.contenttype.model.field.ImmutableDateTimeField
+WYSIWYG		com.dotcms.contenttype.model.field.ImmutableWysiwygField
+Radio		com.dotcms.contenttype.model.field.ImmutableRadioField
+Select		com.dotcms.contenttype.model.field.ImmutableSelectField
+Checkbox	com.dotcms.contenttype.model.field.ImmutableCheckboxField
+Folder 		com.dotcms.contenttype.model.field.ImmutableHostFolderField
+Image		com.dotcms.contenttype.model.field.ImmutableImageField
+Binary		com.dotcms.contenttype.model.field.ImmutableBinaryField
+Tags		com.dotcms.contenttype.model.field.ImmutableTagField
+Key/Value	com.dotcms.contenttype.model.field.ImmutableKeyValueField
+Custom		com.dotcms.contenttype.model.field.ImmutableCustomField
+Hidden		com.dotcms.contenttype.model.field.ImmutableHiddenField
+*/
+
 var CrudApp = {
-	
+
 	host: "+(conhost:" + dotHostId +" conhost:SYSTEM_HOST)",
 	dwrsessionid: null,
 	dwrBatchId: 1,
-	
+
 	getWorkflowId: function (name) {
 		switch (name) {
 			case 'publish':
@@ -28,14 +47,27 @@ var CrudApp = {
 		}
 		return false;
 	},
-	
+
 	getStructureDataMerged: function () {
 		if (CrudApp.structuresMerged === false && Array.isArray(CrudApp.CT) && Array.isArray(CrudApp.fields)) {
-	
+
 		} else if (Array.isArray(CrudApp.structureData)) {
 			return CrudApp.structureData;
 		}
 		return CrudApp.structureData;
+	},
+
+	logout: function () {
+		$.ajax({
+			url: '/api/v1/logout',
+			method: 'GET',
+			success: function () {
+				location.href = '/';
+			},
+			error: function () {
+				location.href = "/apit/v1/logout"
+			}
+		});
 	},
 
 	// Text Manipulation
@@ -72,7 +104,7 @@ var CrudApp = {
 			});
 			return out;
 		},
-		
+
 		csvFields: function (data, stName, enabledFields) {
 			var out = '';
 			out += stName;
@@ -110,7 +142,7 @@ var CrudApp = {
 			});
 			return out;
 		},
-	
+
 		tableFields: function (data, stName, enabledFields) {
 			var out = '';
 			out +=  '<td>' + stName + '</td>';
@@ -119,7 +151,7 @@ var CrudApp = {
 			}
 			return out;
 		},
-	
+
 		tableOutput: function (data, stName, enabledFields) {
 			var out = '';
 			out += '<table>' + "\n";
@@ -140,26 +172,6 @@ var CrudApp = {
 			return out;
 		}
 
-	},
-	
-
-
-
-
-
-
-
-	logout: function () {
-		$.ajax({
-			url: '/api/v1/logout',
-			method: 'GET',
-			success: function () {
-				location.href = '/';
-			},
-			error: function () {
-				location.href = "/apit/v1/logout"
-			}
-		});
 	},
 
 	sessionLog: {
@@ -190,13 +202,13 @@ var CrudApp = {
 				logLevel = '<span class="label primary">[INFO]</span>';
 			}
 			out += timestamp + '&nbsp;' + logLevel + '&nbsp;' + text + '</p>';
-		
+
 			$(logWindow).html( out + $(logWindow).html() );
 		},
 		openLogWindow: function () {
 			$('#logWindow').foundation('open');
 		}
-	
+
 	}
 
 };
@@ -221,7 +233,7 @@ CrudApp.util = {
 						}
 					});
 				});
-				
+
 				if (inodeList.length > 0) {
 					CrudApp.sessionLog.addEntry("Have inode list for " + identifier, 3);
 					CrudApp.util.pruneInodesQueue(inodeList);
@@ -255,6 +267,14 @@ CrudApp.util = {
 				}
 			});
 		}, timeout);
+	},
+
+	addToConsoleHistory: function (string) {
+		var out = String('<hr><p class="log-entry">');
+		var timestamp = moment().format("DD-MMM YYYY HH:mm:ss");
+		out += timestamp + '&nbsp;' + '<code>' + string + '</code>' + '</p>';
+
+		$('#console-history').html( out + $('#console-history').html() );
 	}
 
 };
@@ -302,6 +322,130 @@ Vue.component('contentManager', {
 	}
 });
 
+Vue.component('velocityConsole', {
+	template: "#velocity-console",
+	props: ["ct", "user"],
+	data: function () {
+		return {
+			velocityProcessorEndpoint: 'vel-parse.jsp',
+			loading: false,
+			outputFormat: 'preformatted',
+			processVelocity: true,
+			liveUpdate: false,
+			logging: false,
+			benchStart: null,
+			benchFinish: null,
+			bench: null,
+			lastDispatch: 0,
+			floodControl: false,
+			consoleInput: null,
+			consoleOutput: null,
+			liveUpdateFunction: null,
+			consoleInputQueue: null,
+		}
+	},
+	methods: {
+		sendQuery: function () {
+			if (this.processVelocity) {
+				this.sendVelocityQuery();
+			} else {
+				this.consoleOutput = this.consoleInput;
+			}
+		},
+		sendVelocityQuery: function () {
+			if (this.liveUpdate === false) {
+				CrudApp.util.addToConsoleHistory(this.consoleInput);
+			}
+			
+			console.log(this.lastDispatchDiff());
+
+			if (this.lastDispatchDiff() < 350 || this.floodContol) {
+				this.floodControl = true;
+				this.loading = true
+				setTimeout(this.resetFloodControl, 1400);
+			}
+			this.loading = true;
+			this.benchStart = Date.now();
+
+			var vm = this;
+
+			$.ajax({
+				url: this.velocityProcessorEndpoint,
+				type: 'POST',
+				data: {'q': 'vtlConsole', 's': this.consoleInput, 'l': this.logging },
+				success: function (data) {
+					vm.benchFinish = Date.now();
+					vm.lastDispatch = Date.now();
+					vm.calcBenchmarks();
+					vm.loading = false;
+					vm.consoleOutput = data;
+					CrudApp.sessionLog.addEntry("Velocity Console: Callback Success", 3);
+				},
+				error: function (data, status, xhr) {
+					vm.loading = false;
+					vm.consoleOutput = 'Error:'+"\n"+'status:'+status+"\n"+'xhr:'+xhr+"\n"+'data:'+data+"\n";
+					CrudApp.sessionLog.addEntry("Velocity Console: Callback Failed", 1);
+				},
+			});
+		},
+		lastDispatchDiff: function () {
+			return Number(Date.now() - this.lastDispatch);
+		},
+		resetFloodControl: function () {
+			this.loading = false;
+			this.floodControl = false;
+		},
+		calcBenchmarks: function () {
+			this.bench = (this.benchFinish - this.benchStart);
+		},
+		initLiveUpdate: function () {
+			if (this.processVelocity === true) {
+				this.liveUpdateFunction = setInterval(this.liveUpdater, 600);
+			} else {
+				this.liveUpdateFunction = setInterval(this.liveUpdater, 50);
+			}
+		},
+		liveUpdater: function () {
+			if (this.consoleInputQueue && this.consoleInput) {
+				if (this.consoleInput.length > this.consoleInputQueue.length) {
+					this.sendVelocityQuery();
+				}
+			}
+			this.consoleInputQueue = this.consoleInput;
+		},
+		checkLiveUpdateStatus: function () {
+			if (this.liveUpdate === false) {
+				if (this.liveUpdateFunction) {
+					clearInterval(this.liveUpdateFunction);
+					this.liveUpdateFunction = null;
+				}
+			} else {
+				if (!this.liveUpdateFunction) {
+					this.initLiveUpdate();
+				}
+			}
+		}
+	},
+	watch: {
+		liveUpdate: function (val) {
+			console.log("watcher trigger");
+			this.checkLiveUpdateStatus();
+		},
+		outputFormat: function (val) {
+			// Clear current interval if changing VTL preprocessor while live update is active
+			if (this.liveUpdate) {
+				clearInterval(this.liveUpdateFunction);
+				this.checkLiveUpdateStatus();
+			}
+		}
+	},
+	mounted: function () {
+		this.checkLiveUpdateStatus();
+		this.lastDispatch = Date.now();
+	}
+});
+
+
 
 Vue.component('contentList', {
 	template: "#content-list",
@@ -313,7 +457,6 @@ Vue.component('contentList', {
 		}
 	},
 	methods: {
-
 		invertSelected: function () {
 			for (var i = 0; i < this.results.length; i++) {
 				if (this.selectedContentlets.indexOf(this.results[i].inode) === -1) {
@@ -336,12 +479,12 @@ Vue.component('contentList', {
 				var contentletDisplayField = this.findContentletDisplayField(contentletStructure);
 				return result[contentletDisplayField];
 			}
-			
+
 		},
 		resultType: function (result) {
 			var idToFind = result.stInode;
 			var structureIndex = this.ct.findIndex(function (element) {
-				return element.id === idToFind 
+				return element.id === idToFind
 			});
 			return this.ct[structureIndex].variable;
 		},
@@ -378,7 +521,7 @@ Vue.component('contentList', {
 		confirmAction: function () {
 			var vm = this;
 			// CrudApp.sessionLog.openLogWindow();
-			
+
 			// Pruning inodes is a different process than applying workflow actions
 			if (this.actionSelected === 'prune') {
 				CrudApp.sessionLog.addEntry("contentManager inode prune: Preparing prune actions", 3);
@@ -415,7 +558,7 @@ Vue.component('contentList', {
 								'c0-param10=string:' + "\n" +
 								'batchId=' + CrudApp.dwrBatchId + "\n" +
 								'instanceId=0' + "\n" +
-								'page=%2Fc%2Fportal%2Flayout%3F' + "\n" + 
+								'page=%2Fc%2Fportal%2Flayout%3F' + "\n" +
 								'scriptSessionId=' + CrudApp.dwrsessionid,
 						success: function(data) {
 							if (data.indexOf('Workflow executed') > 0 && data.indexOf('success')) {
@@ -432,9 +575,6 @@ Vue.component('contentList', {
 				}
 			}
 		}
-	},
-	mounted: function () {
-
 	}
 });
 
@@ -464,27 +604,13 @@ Vue.component('queryBox', {
 		getCTFields: function () {
 			var vm = this;
 			this.exportOptions.fields = [];
-			$.ajax({
-				method: 'GET',
-				url: '/api/v1/contenttype/' + vm.selectedCT + '/fields',
-				contentType: 'application/json',
-				success: function (data) {
-					if (CrudApp.hasEntityList(data)) {
-						data.entity.unshift({
-							'name': 'Identifier',
-							'variable': 'identifier',
-							'dataType': 'TEXT'
-						});
-						vm.rawfields = data.entity;
-						vm.fields = vm.rebuildFieldsList(data.entity);
-						vm.preSelectCheckboxes();
-						CrudApp.sessionLog.addEntry("queryBox getCTFields(): Callback Success", 3);
-					}
-				},
-				error: function (xhr, status, error) {
-					CrudApp.sessionLog.addEntry("queryBox getCTFields(): Callback Fail: " + error, 1);
+			for (var i = 0; i < this.ct.length; i++) {
+				if (this.ct[i].variable == this.selectedCT) {
+					this.rawFields = this.ct[i].fields;
+					this.fields = this.rebuildFieldsList(this.ct[i].fields);
+					this.preSelectCheckboxes();
 				}
-			});
+			}
 		},
 		rebuildFieldsList: function (data) {
 			var rebuild = [];
@@ -505,7 +631,7 @@ Vue.component('queryBox', {
 						'name': element.name,
 						'variable': element.variable,
 						'dataType': element.dataType
-					});								
+					});
 				}
 			});
 			return rebuild;
@@ -559,7 +685,7 @@ Vue.component('queryBox', {
 						if (Object.prototype.toString.call(data.contentlets) == '[object Array]') {
 							this.exportData = this.syncFieldPreferences(data.contentlets);
 						} else {
-							this.getExportData();	
+							this.getExportData();
 						}
 					}
 				} else if (this.exportFormat == "xml") {
@@ -685,25 +811,25 @@ Vue.component('queryImportBox', {
 			var vm = this;
 			if (this.textData && typeof this.textData === "string" && this.textData.length > 0) {
 				try {
-					var inData = JSON.parse(this.textData);	
+					var inData = JSON.parse(this.textData);
 				} catch (error) {
 					this.importErrors = "Parse Error: " + error.message;
 					CrudApp.sessionLog.addEntry("importQueue(): Error Parsing text: " + error.message , 1);
 					return 1;
 				}
-				
+
 				// Data appears to be good, lets proceed
 				if (Object.prototype.toString.call(inData) === '[object Array]') {
-					
+
 					inData.forEach(function (element) {
 						element.stName = vm.ctName;
 					});
-					
+
 					this.itemsToImport = inData.length;
 					this.isImporting = true;
 					this.importErrors = null;
 					this.importState = [];
-					
+
 					for (var i = 0; i < inData.length; i++) {
 						// Lets stagger the requests to prevent flooding
 						this.jsonStaggerImportQueue(inData[i], i);
@@ -764,23 +890,25 @@ Vue.component('queryImportBox', {
 
 Vue.component('import-form', {
 	template: '#import-form',
-	props: ['selectedCT', 'CT', 'importOptions', 'ctName'],
+	props: ["selectedCT", "ct", "importOptions", "ctName"],
 	data: function () {
 		return {
-			importForm: []
+			importForm: [],
+			hostId: dotHostId
 		}
 	},
 	methods: {
 		generateFormMetadata: function () {
 			this.importForm = [];
 			for (var i = 0; i < this.currentCT.fields.length; i++) {
-				
+
 				if (this.currentCT.fields[i].dataType == 'TEXT' || this.currentCT.fields[i].dataType == 'INTEGER' || this.currentCT.fields[i].dataType == 'FLOAT' ) {
-					if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableDateTimeField") {
+					if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableImageField") {
 						this.importForm.push({
 							ele: "input",
-							type: "datetime",
+							type: "file",
 							size: "small-4",
+							smaller: false,
 							id: this.currentCT.fields[i].variable,
 							label: this.currentCT.fields[i].name,
 							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
@@ -795,7 +923,7 @@ Vue.component('import-form', {
 							label: this.currentCT.fields[i].name,
 							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
 							value: null
-						});					
+						});
 					} else {
 						this.importForm.push({
 							ele: "input",
@@ -830,8 +958,11 @@ Vue.component('import-form', {
 						});
 					}
 				}
-				
+
 			}
+		},
+		addHostId: function (element) {
+			element.value = this.hostId;
 		}
 	},
 	mounted: function () {
@@ -884,7 +1015,7 @@ Vue.component('structureImportBox', {
 			var vm = this;
 			var importObj = this.getImportText();
 			vm.importErrors = null;
-			
+
 			if (importObj.hasOwnProperty('structure')) {
 				if (importObj.structure.hasOwnProperty('clazz') && importObj.structure.hasOwnProperty('host') && importObj.structure.hasOwnProperty('name') && importObj.structure.hasOwnProperty('owner')) {
 					$.ajax({
@@ -1052,7 +1183,7 @@ Vue.component('dotApi', {
 	methods: {
 		sendRequest: function () {
 			CrudApp.sessionLog.addEntry("dotApi sendRequest(): Sending Request", 3);
-			
+
 			this.showOutput = true;
 			var vm = this;
 			var uriParams = '';
@@ -1257,163 +1388,3 @@ CrudApp.vue = new Vue({
 		}
 	}
 });
-
-/* Velocity Console */
-
-function addToConsole (id) {
-    var out  = '#' + '#' + $('#'+'wm-name-'+id).val() + "\n";
-        out += $('#'+'wm-vtl-'+id).val().replace(/\\/g,'') + "\n";
-        out += $('#'+'wm-var-'+id).val() + "\n";
-    $("#better-console-query").text(out);
-}
-function insertPreset(presetName) {
-    $("#better-console-query").text(unescape(document.getElementById(presetName).innerHTML));
-}
-/* IMPORTANT: Velocity is processed via an XHR request to another page, this page eval's
- *            the code and return output.
-*/
-var VelocityProcessorEndpoint = './vel-parse.jsp';
-var benchStart, benchFinish, liveUpdate;
-var lastDispatch = 0;
-var keyQueue = String("");
-
-function vcHideEle(el) { $(el).addClass('hide'); }
-function vcShowEle(el) { $(el).removeClass('hide'); }
-function updateHistory(lastInput) {
-	$('#history').prepend('<pre style="white-space: pre-wrap;">' + lastInput + '</pre><hr>');
-}
-function vcGetOutputHeight(data) {
-	if (data) {
-		var dataSplit = data.split(/\n/g);
-		if (dataSplit.length && dataSplit.length > 0) {
-			lineHeight = 30 + (dataSplit.length * 18);
-		} else {
-			lineHeight = 30 + (data.length * 18);
-		}
-		//lineHeight = lineHeight + ((data.length * 2) + 30);
-		return String(lineHeight + "px");
-	} else {
-		return "60px";
-	}
-
-}
-function vcLastDispatchDiff() {
-	return Number(Date.now() - lastDispatch);
-}
-function vcOutputBenchmarks() {
-	if (benchStart && benchFinish) {
-		$('#bench').html('Last Request:' + (benchFinish - benchStart) + 'ms');
-	}
-}
-function vcSendOutput(data) {
-	if ($("input:radio[name ='outFormat']:checked").val() == 'preformatted') {
-		vcHideEle('div.velocity-output');
-		vcShowEle('div.velocity-output-pre');
-		$('div.velocity-output-pre').html("<pre style=\"white-space: pre-wrap;\">"+data.replace(/(^\s+\b)+/m, '')+"</pre>");
-		//$('div.velocity-output-pre').css('height', vcGetOutputHeight(data));
-	} else {
-		vcHideEle('div.velocity-output-pre');
-		vcShowEle('div.velocity-output');
-		$('div.velocity-output').html(data);
-	}
-}
-function vcKeyQueue(e) {
-	keyQueue = keyQueue + 'a';
-}
-function vcLiveUpdater() {
-	if ($('#liveUpdate').prop('checked')) {
-		if (!liveUpdate) {
-			liveUpdate = setInterval(function () {
-				if (keyQueue.length > 0) {
-					vcSendQuery(); keyQueue = String("");
-				}
-			}, 400);
-		}
-	} else {
-		if (liveUpdate) {
-			clearInterval(liveUpdate);
-			liveUpdate = null;
-		}
-	}
-}
-function vcIsLiveUpdateEnabled() {
-	if (liveUpdate && $('#liveUpdate').prop('checked')) {
-		return true;
-	} else {
-		return false;
-	}
-}
-function vcIsVtlProcessEnabled() {
-	return $('#vtlProcess').prop('checked');
-}
-function vcIsLoggingEnabled() {
-	return $('#enableLogging').prop('checked');
-}
-function vcSendQuery() {
-	if (!vcIsLiveUpdateEnabled()) {
-		vcHideEle('textarea.velocity-output-pre');
-		vcHideEle('div.velocity-output');
-		vcShowEle('#spinnerConsole');
-		$('textarea.velocity-output').val('');
-		$('#enableLogging').prop('disabled', false);
-		updateHistory($("#ConsoleQuery").val());
-	} else {
-		$('#enableLogging').prop('checked', false);
-		$('#enableLogging').prop('disabled', true);
-	}
-	benchStart = Date.now();
-	if (vcIsVtlProcessEnabled()) {
-		if (vcLastDispatchDiff() > 500) {
-			$.ajax({
-				url: VelocityProcessorEndpoint,
-				type: 'POST',
-				withCredentials: false,
-				data: {'q': 'vtlConsole', 's': $("#ConsoleQuery").val(), 'l': vcIsLoggingEnabled() },
-				success: function (data) {
-					console.log('callback success');
-					benchFinish = Date.now(); vcOutputBenchmarks();
-					lastDispatch = Date.now();
-					vcHideEle('#spinnerConsole');
-					vcSendOutput(data);
-					CrudApp.sessionLog.addEntry("Velocity Console: Callback Success", 3);
-				},
-				error: function (data, status, xhr) {
-					vcHideEle('#spinnerConsole');
-					vcSendOutput('Error:'+"\n"+'status:'+status+"\n"+'xhr:'+xhr+"\n"+'data:'+data+"\n");
-					CrudApp.sessionLog.addEntry("Velocity Console: Callback Unsuccessful", 2);
-				},
-			});
-			vcHideEle($('#flood-alert'));
-			vcShowEle($('.console-send'));
-		} else {
-			vcShowEle($('#flood-alert'));
-			vcHideEle($('.console-send'));
-			setTimeout(function() { vcSendQuery() }, 1000);
-		}
-	} else {
-		vcHideEle('#spinnerConsole');
-		vcHideEle('textarea.velocity-output');
-		vcShowEle('div.velocity-output');
-		vcSendOutput($("#ConsoleQuery").val());
-	}
-}
-
-
-
-/*
-Field Types Ref:
-Text		com.dotcms.contenttype.model.field.ImmutableTextField
-Textarea	com.dotcms.contenttype.model.field.ImmutableTextAreaField					
-Date/time	com.dotcms.contenttype.model.field.ImmutableDateTimeField					
-WYSIWYG		com.dotcms.contenttype.model.field.ImmutableWysiwygField
-Radio		com.dotcms.contenttype.model.field.ImmutableRadioField
-Select		com.dotcms.contenttype.model.field.ImmutableSelectField
-Checkbox	com.dotcms.contenttype.model.field.ImmutableCheckboxField
-Folder 		com.dotcms.contenttype.model.field.ImmutableHostFolderField
-Image		com.dotcms.contenttype.model.field.ImmutableImageField
-Binary		com.dotcms.contenttype.model.field.ImmutableBinaryField
-Tags		com.dotcms.contenttype.model.field.ImmutableTagField
-Key/Value	com.dotcms.contenttype.model.field.ImmutableKeyValueField
-Custom		com.dotcms.contenttype.model.field.ImmutableCustomField
-Hidden		com.dotcms.contenttype.model.field.ImmutableHiddenField
-*/
