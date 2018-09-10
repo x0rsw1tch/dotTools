@@ -23,7 +23,7 @@ var CrudApp = {
 	host: "+(conhost:" + dotHostId +" conhost:SYSTEM_HOST)",
 	dwrsessionid: null,
 	dwrBatchId: 1,
-
+	dotcms: null,
 	getWorkflowId: function (name) {
 		switch (name) {
 			case 'publish':
@@ -41,7 +41,7 @@ var CrudApp = {
 
 	hasEntityList: function (data) {
 		if (data.hasOwnProperty('entity') && data.entity) {
-			if (Object.prototype.toString.call(data.entity) === '[object Array]') {
+			if (Object.prototype.toString.call(data.entity) === '[object Array]' || Object.prototype.toString.call(data.entity) === '[object Object]') {
 				return true;
 			}
 		}
@@ -279,48 +279,16 @@ CrudApp.util = {
 
 };
 
-Vue.component('contentManager', {
-	template: '#content-manager',
-	props: ["ct", "users"],
-	data: function () {
-		return {
-			hasResults: false,
-			queryErrors: null,
-			query: {
-				query: "+(conhost:48190c8c-42c4-46af-8d1a-0cd5db894797 conhost:SYSTEM_HOST) -contentType:Host -baseType:3 -contentType:Persona +languageId:1 +deleted:false working:true",
-				query2: "",
-				offset: 0,
-				limit: 0,
-				sort: 'modDate desc'
-			},
-			results: null
-		}
-	},
+Vue.component('dotcmsInfo', {
+	template: '#dotcms-info',
+	props: ["dotcms", "pane"],
 	methods: {
-		sendQuery: function () {
-			this.results = null;
-			var vm = this;
-			$.ajax({
-				method: 'GET',
-				url: '/api/content/render/false/query/' + encodeURIComponent(vm.query.query) + '%20' + encodeURIComponent(vm.query.query2) + '%20' + '/orderby/' + encodeURIComponent(vm.query.sort) + '/limit/' + vm.query.limit + '/offset/' + vm.query.offset,
-				contentType: 'application/json',
-				success: function (data) {
-					if (data.contentlets) {
-						vm.results = data.contentlets;
-						vm.hasResults = true;
-						CrudApp.sessionLog.addEntry("contentManager sendQuery(): Callback Success", 3);
-					} else {
-						CrudApp.sessionLog.addEntry("contentManager sendQuery(): Return Data Invalid", 2);
-					}
-				},
-				error: function (xhr, status, error) {
-					vm.queryErrors = status.status + ': ' + status.responseText;
-					CrudApp.sessionLog.addEntry("contentManager sendQuery(): Callback error: " + error, 2);
-				}
-			})
-		},
+		setPane: function (pane) {
+			this.$root.pane = pane;
+		}
 	}
 });
+
 
 Vue.component('velocityConsole', {
 	template: "#velocity-console",
@@ -341,7 +309,7 @@ Vue.component('velocityConsole', {
 			consoleInput: null,
 			consoleOutput: null,
 			liveUpdateFunction: null,
-			consoleInputQueue: null,
+			consoleInputQueue: null
 		}
 	},
 	methods: {
@@ -446,6 +414,49 @@ Vue.component('velocityConsole', {
 });
 
 
+Vue.component('contentManager', {
+	template: '#content-manager',
+	props: ["ct", "users"],
+	data: function () {
+		return {
+			hasResults: false,
+			queryErrors: null,
+			query: {
+				query: "+(conhost:48190c8c-42c4-46af-8d1a-0cd5db894797 conhost:SYSTEM_HOST) -contentType:Host -baseType:3 -contentType:Persona +languageId:1 +deleted:false working:true",
+				query2: "",
+				offset: 0,
+				limit: 0,
+				sort: 'modDate desc'
+			},
+			results: null
+		}
+	},
+	methods: {
+		sendQuery: function () {
+			this.results = null;
+			var vm = this;
+			$.ajax({
+				method: 'GET',
+				url: '/api/content/render/false/query/' + encodeURIComponent(vm.query.query) + '%20' + encodeURIComponent(vm.query.query2) + '%20' + '/orderby/' + encodeURIComponent(vm.query.sort) + '/limit/' + vm.query.limit + '/offset/' + vm.query.offset,
+				contentType: 'application/json',
+				success: function (data) {
+					if (data.contentlets) {
+						vm.results = data.contentlets;
+						vm.hasResults = true;
+						CrudApp.sessionLog.addEntry("contentManager sendQuery(): Callback Success", 3);
+					} else {
+						CrudApp.sessionLog.addEntry("contentManager sendQuery(): Return Data Invalid", 2);
+					}
+				},
+				error: function (xhr, status, error) {
+					vm.queryErrors = status.status + ': ' + status.responseText;
+					CrudApp.sessionLog.addEntry("contentManager sendQuery(): Callback error: " + error, 2);
+				}
+			})
+		},
+	}
+});
+
 
 Vue.component('contentList', {
 	template: "#content-list",
@@ -453,7 +464,8 @@ Vue.component('contentList', {
 	data: function () {
 		return {
 			selectedContentlets: [],
-			actionSelected: null
+			actionSelected: null,
+			result: null
 		}
 	},
 	methods: {
@@ -493,6 +505,9 @@ Vue.component('contentList', {
 			var userIndex = this.users.findIndex(element => element.id === idToFind);
 			return this.users[userIndex].name;
 
+		},
+		setResult: function (result) {
+			this.result = result;
 		},
 		findStructureById: function (id) {
 			for (var i = 0; i < this.ct.length; i++) {
@@ -577,6 +592,23 @@ Vue.component('contentList', {
 		}
 	}
 });
+
+
+Vue.component("contentletData", {
+	template: '#contentlet-data',
+	props: ["result"],
+	methods: {
+		isVisible: function () {
+			if (this.$parent.result && this.$parent.result.inode == this.result.inode) {
+				return true;
+			}
+			return false;
+		},
+		hide: function () {
+			this.$parent.result = null;
+		}
+	}
+})
 
 
 Vue.component('queryBox', {
@@ -782,27 +814,15 @@ Vue.component('queryImportBox', {
 	},
 	methods: {
 		getCTFields: function () {
-			var vm = this;
-			$.ajax({
-				method: 'GET',
-				url: '/api/v1/contenttype/' + vm.selectedCT + '/fields',
-				contentType: 'application/json',
-				success: function (data) {
-					if (CrudApp.hasEntityList(data)) {
-						CrudApp.sessionLog.addEntry("queryImportBox getCTFields(): Callback Success", 3);
-						data.entity.unshift({
-							'name': 'Identifier',
-							'variable': 'identifier',
-							'dataType': 'TEXT'
-						});
-						vm.fields = data.entity;
-					} else {
-						CrudApp.sessionLog.addEntry("queryImportBox getCTFields(): Invalid Return Data", 2);
-					}
-				},
-				error: function (xhr, status, error) {
-					CrudApp.sessionLog.addEntry("queryImportBox getCTFields(): Callback Error" + error, 1);
+			for (var i = 0; i < this.ct.length; i++) {
+				if (this.ct[i].variable === this.ctName) {
+					this.fields = this.ct[i].fields;
 				}
+			}
+			this.fields.unshift({
+				'name': 'Identifier',
+				'variable': 'identifier',
+				'dataType': 'TEXT'
 			});
 		},
 		importQueue: function () {
@@ -876,6 +896,7 @@ Vue.component('queryImportBox', {
 					this.selectedCT = this.ct[i];
 				}
 			}
+			this.getCTFields();
 		},
 		importState: function (val) {
 			if (Object.prototype.toString.call(this.importState) === '[object Array]') {
@@ -902,71 +923,97 @@ Vue.component('import-form', {
 			this.importForm = [];
 			for (var i = 0; i < this.currentCT.fields.length; i++) {
 
-				if (this.currentCT.fields[i].dataType == 'TEXT' || this.currentCT.fields[i].dataType == 'INTEGER' || this.currentCT.fields[i].dataType == 'FLOAT' ) {
-					if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableImageField") {
+				if (this.currentCT.fields[i].variable != 'identifier') {
+					if (this.currentCT.fields[i].dataType == 'TEXT' || this.currentCT.fields[i].dataType == 'INTEGER' || this.currentCT.fields[i].dataType == 'FLOAT' ) {
+						if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableImageField") {
+							this.importForm.push({
+								ele: "input",
+								type: "file",
+								size: "small-4",
+								smaller: false,
+								id: this.currentCT.fields[i].variable,
+								label: this.currentCT.fields[i].name,
+								fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								value: null
+							});
+						} else if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableDateTimeField") {
+							this.importForm.push({
+								ele: "input",
+								type: "datetime",
+								size: "small-4",
+								id: this.currentCT.fields[i].variable,
+								label: this.currentCT.fields[i].name,
+								fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								value: null
+							});
+						} else {
+							this.importForm.push({
+								ele: "input",
+								type: "text",
+								size: "small-4",
+								id: this.currentCT.fields[i].variable,
+								label: this.currentCT.fields[i].name,
+								fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								value: null
+							});
+						}
+					} else if (this.currentCT.fields[i].dataType == 'LONG_TEXT') {
 						this.importForm.push({
-							ele: "input",
-							type: "file",
-							size: "small-4",
-							smaller: false,
+							ele: "textarea",
+							type: "textarea",
+							size: "small-9",
 							id: this.currentCT.fields[i].variable,
 							label: this.currentCT.fields[i].name,
 							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
 							value: null
 						});
-					} else if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableDateTimeField") {
-						this.importForm.push({
-							ele: "input",
-							type: "datetime",
-							size: "small-4",
-							id: this.currentCT.fields[i].variable,
-							label: this.currentCT.fields[i].name,
-							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
-							value: null
-						});
-					} else {
-						this.importForm.push({
-							ele: "input",
-							type: "text",
-							size: "small-4",
-							id: this.currentCT.fields[i].variable,
-							label: this.currentCT.fields[i].name,
-							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
-							value: null
-						});
-					}
-				} else if (this.currentCT.fields[i].dataType == 'LONG_TEXT') {
-					this.importForm.push({
-						ele: "textarea",
-						type: "textarea",
-						size: "small-9",
-						id: this.currentCT.fields[i].variable,
-						label: this.currentCT.fields[i].name,
-						fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
-						value: null
-					});
-				} else if (this.currentCT.fields[i].dataType == 'SYSTEM') {
-					if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableHostFolderField") {
-						this.importForm.push({
-							ele: "input",
-							type: "text",
-							size: "small-4",
-							id: this.currentCT.fields[i].variable,
-							label: this.currentCT.fields[i].name,
-							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
-							value: null
-						});
+					} else if (this.currentCT.fields[i].dataType == 'SYSTEM') {
+						if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableHostFolderField") {
+							this.importForm.push({
+								ele: "input",
+								type: "text",
+								size: "small-4",
+								id: this.currentCT.fields[i].variable,
+								label: this.currentCT.fields[i].name,
+								fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								value: null
+							});
+						}
 					}
 				}
-
 			}
 		},
 		addHostId: function (element) {
 			element.value = this.hostId;
+		},
+		getFormData: function () {
+			var out = {};
+			out.stName = this.ctName;
+			for (let index = 0; index < this.importForm.length; index++) {
+				var element = this.importForm[index];
+				out[element.id] = element.value;
+			}
+			return out;
+		},
+		submitImportForm: function () {
+			var vm = this;
+			var importData = this.getFormData();
+			$.ajax({
+				url: '/api/content/' + this.importOptions.saveMode + '/1',
+				method: this.importOptions.inMode,
+				data: JSON.stringify(importData),
+				contentType: 'application/json',
+				success: function (data) {
+					CrudApp.sessionLog.addEntry("submitImportForm(): Import Success", 3);
+				},
+				error: function (status, xhr, error) {
+					CrudApp.sessionLog.addEntry("submitImportForm(): Import Error" + status.responseText, 1);
+				}
+			})
 		}
 	},
 	mounted: function () {
-			this.generateFormMetadata();
+		this.generateFormMetadata();
 	},
 	computed: {
 		currentCT: function () {
@@ -1226,7 +1273,9 @@ CrudApp.vue = new Vue({
 			ctFields: null,
 			hasMarkdown: false,
 			consoleInputListener: false,
-			users: null
+			users: null,
+			dotcms: null,
+			result: null
 		}
 	},
 	methods: {
@@ -1360,6 +1409,21 @@ CrudApp.vue = new Vue({
 			CrudApp.dwrsessionid = out;
 			CrudApp.dwrBatchId++;
 			Cookies.set('DWRSESSIONID', out, { expires: 1 });
+		},
+		getDotcmsInfo: function () {
+			if (!CrudApp.dotcms) {
+				var vm = this;
+				$.ajax({
+					url: '/api/v1/appconfiguration',
+					method: 'GET',
+					success: function (data) {
+						if (CrudApp.hasEntityList(data)) {
+							CrudApp.dotcms = data.entity;
+							vm.dotcms = data.entity;
+						}
+					}
+				});
+			}
 		}
 	},
 	watch: {
@@ -1386,5 +1450,6 @@ CrudApp.vue = new Vue({
 		if (!Cookies.get('DWRSESSIONID')) {
 			this.getDwrSessionId();
 		}
+		this.getDotcmsInfo();
 	}
 });

@@ -53,82 +53,106 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 
 <body>
 
-	<div id="crud-app">
-		<div class="grid-y medium-grid-frame">
+<div id="crud-app">
+	<div class="grid-y medium-grid-frame">
 
-			<div class="cell shrink header medium-cell-block-container" style="margin-bottom:0.5rem;">
-				<nav class="hover-underline-menu" data-menu-underline-from-center="data-menu-underline-from-center">
-					<ul class="menu">
-						<li><a v-bind:class="{'nav-active': navItemActive('default')}" v-on:click="setPane('default')">dotTools</a></li>
-					</ul>
-					<ul class="menu">
-						<li>
-							<a v-bind:class="{'nav-active': navItemActive('console')}" v-on:click="setPane('console')">Console</a>
-						</li>
-						<li>
-							<a v-bind:class="{'nav-active': navItemActive('content-manager')}" v-on:click="setPane('content-manager')">Manager</a>
-						</li>
-						<li>
-							<a v-bind:class="{'nav-active': navItemActive('content-import')}" v-on:click="setPane('content-import')">Content Import</a>
-						</li>
-						<li>
-							<a v-bind:class="{'nav-active': navItemActive('content-export')}" v-on:click="setPane('content-export')">Content Export</a>
-						</li>
-						<li>
-							<a v-bind:class="{'nav-active': navItemActive('structure-export')}" v-on:click="setPane('structure-export')">CT Export</a>
-						</li>
-						<li>
-							<a v-bind:class="{'nav-active': navItemActive('structure-import')}" v-on:click="setPane('structure-import')">CT Import</a>
-						</li>
-						<li>
-							<a v-bind:class="{'nav-active': navItemActive('api')}" v-on:click="setPane('api')">API</a>
-						</li>
-						<%-- <li>
-							<a v-bind:class="{'nav-active': navItemActive('export')}" data-open="logWindow">Log</a>
-						</li> --%>
-					</ul>
-					<ul class="menu">
-						<li><a href="#" onclick="CrudApp.logout();">Logout</a></li>
-					</ul>
-				</nav>
-			</div>
-
-			<div class="cell small-9 medium-cell-block-y">
-
-				<div v-if="pane == 'default'">
-					<h3 class="align-self-center">Hi!</h3>
-				</div>
-
-				<div v-if="pane == 'console'">
-					<velocity-console :ct="ct" :users="users"></velocity-console>
-				</div>	
-				<div v-if="pane == 'content-manager'">
-					<content-manager :ct="ct" :users="users"></content-manager>
-				</div>
-				<div v-if="pane == 'content-import'">
-					<query-import-box :ct="ct"></query-import-box>
-				</div>
-				<div v-if="pane == 'content-export'">
-					<query-box :ct="ct"></query-box>
-				</div>
-				<div v-if="pane == 'structure-import'">
-					<structure-import-box></structure-import-box>
-				</div>
-				<div v-if="pane == 'structure-export'">
-					<structure-export-box :ct="ct"></structure-export-box>
-				</div>
-				<div v-if="pane == 'api'">
-					<dot-api :ct="ct"></dot-api>
-				</div>
-			</div>
-
-			<div class="cell small-2 footer medium-cell-block-y" style="margin-top:1rem;">
-				<div id="session-log"></div>
-			</div>
-
+		<div class="cell shrink header medium-cell-block-container" style="margin-bottom:0.5rem;">
+			<nav class="hover-underline-menu" data-menu-underline-from-center="data-menu-underline-from-center">
+				<ul class="menu">
+					<li><a v-bind:class="{'nav-active': navItemActive('default')}" v-on:click="setPane('default')">dotTools</a></li>
+				</ul>
+				<ul class="menu">
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('console')}" v-on:click="setPane('console')">Console</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('content-manager')}" v-on:click="setPane('content-manager')">Manager</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('content-import')}" v-on:click="setPane('content-import')">Content Import</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('content-export')}" v-on:click="setPane('content-export')">Content Export</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('structure-import')}" v-on:click="setPane('structure-import')">CT Import</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('structure-export')}" v-on:click="setPane('structure-export')">CT Export</a>
+					</li>
+					<li>
+						<a v-bind:class="{'nav-active': navItemActive('api')}" v-on:click="setPane('api')">API</a>
+					</li>
+					<%-- <li>
+						<a v-bind:class="{'nav-active': navItemActive('export')}" data-open="logWindow">Log</a>
+					</li> --%>
+				</ul>
+				<ul class="menu">
+					<li><a href="#" onclick="CrudApp.logout();">Logout</a></li>
+				</ul>
+			</nav>
 		</div>
-	
+
+		<div class="cell small-9 medium-cell-block-y">
+			<div v-if="pane == 'default'">
+				<dotcms-info :dotcms="dotcms" :pane="pane"></dotcms-info>
+			</div>
+			<div v-if="pane == 'console'">
+				<velocity-console :ct="ct" :users="users"></velocity-console>
+			</div>	
+			<div v-if="pane == 'content-manager'">
+				<content-manager :ct="ct" :users="users"></content-manager>
+			</div>
+			<div v-if="pane == 'content-import'">
+				<query-import-box :ct="ct"></query-import-box>
+			</div>
+			<div v-if="pane == 'content-export'">
+				<query-box :ct="ct"></query-box>
+			</div>
+			<div v-if="pane == 'structure-import'">
+				<structure-import-box></structure-import-box>
+			</div>
+			<div v-if="pane == 'structure-export'">
+				<structure-export-box :ct="ct"></structure-export-box>
+			</div>
+			<div v-if="pane == 'api'">
+				<dot-api :ct="ct"></dot-api>
+			</div>
+		</div>
+
+		<div class="cell small-2 footer medium-cell-block-y flex-child-auto" style="margin-top:1rem;">
+			<div id="session-log"></div>
+		</div>
+
 	</div>
+
+
+</div>
+
+<script type="text/x-template" id="dotcms-info">
+	<div>
+		<div class="grid-x grid-padding-x grid-container">
+			<div class="cell auto">
+				<div v-if="dotcms">
+					<h3>dotTools Utilities</h3>
+
+						<dt>dotCMS Version</dt>
+						<dd>{{ dotcms.config.releaseInfo.version }}</dd>
+				</div>
+
+				<ul class="no-bullet pane-nav-list">
+					<li><a v-on:click="setPane('console')">Console</a>Velocity Console. Run Velocity scripts in real-time<div class="clearfix"></div></li>
+					<li><a v-on:click="setPane('content-manager')">Manager</a>Lucene search content, apply batch workflow operations, and prune inodes<div class="clearfix"></div></li>
+					<li><a v-on:click="setPane('content-import')">Content Import</a>Import contentlets with JSON payloads, or forms<div class="clearfix"></div></li>
+					<li><a v-on:click="setPane('content-export')">Content Export</a>Export contentlets in various formats<div class="clearfix"></div></li>
+					<li><a v-on:click="setPane('structure-import')">CT Import</a>Import Content Types with JSON payloads<div class="clearfix"></div></li>
+					<li><a v-on:click="setPane('structure-export')">CT Export</a>Export Content Types for use with CT Import<div class="clearfix"></div></li>
+					<li><a v-on:click="setPane('dot-api')">API</a>Interact with any host REST API's<div class="clearfix"></div></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</script>
 
 
 <script type="text/x-template" id="velocity-console">
@@ -167,6 +191,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	</div>
 </script>
 
+
 <script type="text/x-template" id="content-manager">
 		<div>
 		<h5 class="text-center">Content Manager</h5>
@@ -180,17 +205,20 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 			</div>
 		</div>
 		<div class="grid-x grid-padding-x">
-			<div class="cell small-3">
-				<input type="text" v-model="query.limit" placeholder="Limit" value="0">
+			<div class="cell small-1">
+				<input type="text" v-model="query.limit" title="Limit" placeholder="Limit" value="0">
 			</div>
-			<div class="cell small-3">
-				<input type="text" v-model="query.offset" placeholder="Offset" value="0">
+			<div class="cell small-1">
+				<input type="text" v-model="query.offset" title="Offset" placeholder="Offset" value="0">
 			</div>
-			<div class="cell small-3">
-				<input type="text" v-model="query.sort" placeholder="Sort" value="modDate desc">
+			<div class="cell small-2">
+				<input type="text" v-model="query.sort" title="sort" placeholder="Sort" value="modDate desc">
 			</div>
-			<div class="cell small-3">
+			<div class="cell small-1">
 				<a class="button" v-on:click="sendQuery()">Go</a>
+			</div>
+			<div class="cell small-1 align-self-middle" v-if="results">
+				<p>Results: {{ results.length }}</p>
 			</div>
 		</div>
 		
@@ -242,11 +270,15 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 					<tbody>
 						<tr v-for="result in results">
 							<td><input type="checkbox" v-model="selectedContentlets" :value="result.inode"></td>
-							<td>{{ resultTitle(result) }}</td>
+							<td style="position:relative;">
+								<a v-on:click="setResult(result)">{{ resultTitle(result) }}</a>
+								<contentlet-data :result="result"></contentlet-data>
+							</td>
 							<td>{{ resultType(result) }}</td>
 							<td>{{ result.languageId }}</td>
 							<td>{{ resultModUser(result) }}</td>
 							<td>{{ result.modDate }}</td>
+							
 						</tr>
 					</tbody>
 				</table>
@@ -255,6 +287,20 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	</div>
 </script>
 
+
+<script type="text/x-template" id="contentlet-data">
+	<div>
+		<div v-if="isVisible()">
+			<div style="position:absolute;padding:0.75rem;border:2px solid #2C3840;top:16px;left:50px;width:60vw;height:400px;background-color:#101010;z-index:2;">
+				<h3>Contentlet Data</h3>
+				<textarea style="height:100%;">{{ result }}</textarea>
+				<button class="close-button" v-on:click="hide()" aria-label="Close modal" type="button">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+		</div>
+	</div>
+</script>
 
 
 <script type="text/x-template" id="query-box">
@@ -327,6 +373,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	</div>
 </script>
 
+
 <script type="text/x-template" id="query-import-box">
 	<div>
 		<div class="grid-container full">
@@ -397,13 +444,22 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	</div>
 </script>
 
+
 <script type="text/x-template" id="import-form">
 	<div v-if="importForm">
 
 		<form>
-			<input type="button" class="button primary" v-on:click="submitImportForm()">
+
 			<div class="grid-container full">
 				<div class="grid-x grid-padding-x">
+					<input type="button" class="button primary" v-on:click="submitImportForm()" value="Submit">
+				</div>
+			</div>
+
+			<div class="grid-container full">
+				<div class="grid-x grid-padding-x">
+					
+					
 					<div v-for="(element, index) in importForm" class="cell align-self-middle" v-if="(importOptions.inMode === 'POST')" :class="element.size">
 						
 						
@@ -422,12 +478,21 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 
 						
 					</div>
+
 				</div>
 			</div>
+
+			<div class="grid-container full">
+				<div class="grid-x grid-padding-x">
+					<input type="button" class="button primary" v-on:click="submitImportForm()" value="Submit">
+				</div>
+			</div>
+
 		</form>
 
 	</div>
 </script>
+
 
 <script type="text/x-template" id="query-output">
 	<div class="grid-y medium-grid-frame">
@@ -437,6 +502,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 		</div>
 	</div>
 </script>
+
 
 <script type="text/x-template" id="structure-import-box">
 	<div>
@@ -455,6 +521,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 		</div>
 	</div>
 </script>
+
 
 <script type="text/x-template" id="structure-export-box">
 	<div>

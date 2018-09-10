@@ -291,6 +291,25 @@ out-fields label {
     margin-right: 1rem;
 }
 
+.pane-nav-list {
+    margin-top: 2rem;
+}
+
+.pane-nav-list > li {
+    margin-bottom: 1.5rem;
+    display: block;
+    width: 100%;
+}
+
+.pane-nav-list > li > a {
+    width: 33%;
+    font-size: 1.1rem; 
+    font-weight: bold;
+    text-transform: uppercase;
+    display: block;
+    float: left;
+}
+
 
 /* Filter Options */
 .options-list {
