@@ -915,35 +915,49 @@ Vue.component('import-form', {
 	data: function () {
 		return {
 			importForm: [],
-			hostId: dotHostId
+			hostId: dotHostId,
+			formData: null,
+			formFiles: []
 		}
 	},
 	methods: {
 		generateFormMetadata: function () {
 			this.importForm = [];
 			for (var i = 0; i < this.currentCT.fields.length; i++) {
+				var element = this.currentCT.fields[i];
 
-				if (this.currentCT.fields[i].variable != 'identifier') {
-					if (this.currentCT.fields[i].dataType == 'TEXT' || this.currentCT.fields[i].dataType == 'INTEGER' || this.currentCT.fields[i].dataType == 'FLOAT' ) {
-						if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableImageField") {
+				if (element.variable != 'identifier') {
+					if (element.dataType == 'TEXT' || element.dataType == 'INTEGER' || element.dataType == 'FLOAT' ) {
+						if (element.clazz == "com.dotcms.contenttype.model.field.ImmutableImageField") {
 							this.importForm.push({
 								ele: "input",
 								type: "file",
 								size: "small-4",
 								smaller: false,
-								id: this.currentCT.fields[i].variable,
-								label: this.currentCT.fields[i].name,
-								fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								id: element.variable,
+								label: element.name,
+								fieldType: element.clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
 								value: null
 							});
-						} else if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableDateTimeField") {
+						} else if (element.clazz == "com.dotcms.contenttype.model.field.ImmutableFileField") {
+							this.importForm.push({
+								ele: "input",
+								type: "file",
+								size: "small-4",
+								smaller: false,
+								id: element.variable,
+								label: element.name,
+								fieldType: element.clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								value: null
+							});
+						} else if (element.clazz == "com.dotcms.contenttype.model.field.ImmutableDateTimeField") {
 							this.importForm.push({
 								ele: "input",
 								type: "datetime",
 								size: "small-4",
-								id: this.currentCT.fields[i].variable,
-								label: this.currentCT.fields[i].name,
-								fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								id: element.variable,
+								label: element.name,
+								fieldType: element.clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
 								value: null
 							});
 						} else {
@@ -951,31 +965,42 @@ Vue.component('import-form', {
 								ele: "input",
 								type: "text",
 								size: "small-4",
-								id: this.currentCT.fields[i].variable,
-								label: this.currentCT.fields[i].name,
-								fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								id: element.variable,
+								label: element.name,
+								fieldType: element.clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
 								value: null
 							});
 						}
-					} else if (this.currentCT.fields[i].dataType == 'LONG_TEXT') {
+					} else if (element.dataType == 'LONG_TEXT') {
 						this.importForm.push({
 							ele: "textarea",
 							type: "textarea",
 							size: "small-9",
-							id: this.currentCT.fields[i].variable,
-							label: this.currentCT.fields[i].name,
-							fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+							id: element.variable,
+							label: element.name,
+							fieldType: element.clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
 							value: null
 						});
-					} else if (this.currentCT.fields[i].dataType == 'SYSTEM') {
-						if (this.currentCT.fields[i].clazz == "com.dotcms.contenttype.model.field.ImmutableHostFolderField") {
+					} else if (element.dataType == 'SYSTEM') {
+						if (element.clazz == "com.dotcms.contenttype.model.field.ImmutableHostFolderField") {
 							this.importForm.push({
 								ele: "input",
 								type: "text",
 								size: "small-4",
-								id: this.currentCT.fields[i].variable,
-								label: this.currentCT.fields[i].name,
-								fieldType: this.currentCT.fields[i].clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								id: element.variable,
+								label: element.name,
+								fieldType: element.clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
+								value: null
+							});
+						} else if (element.clazz == "com.dotcms.contenttype.model.field.ImmutableBinaryField") {
+							this.importForm.push({
+								ele: "input",
+								type: "file",
+								size: "small-4",
+								smaller: false,
+								id: element.variable,
+								label: element.name,
+								fieldType: element.clazz.replace(/(com\.dotcms\.contenttype\.model\.field\.)+/g,""),
 								value: null
 							});
 						}
@@ -983,26 +1008,45 @@ Vue.component('import-form', {
 				}
 			}
 		},
+		inputChange: function (e) {
+			if (e.target && e.target.type == "file") {
+				if (e.target.files && e.target.files[0]) {
+					this.formFiles.push({ "id": e.target.name, "value": e.target.files[0] });
+				}
+			}
+		},
 		addHostId: function (element) {
 			element.value = this.hostId;
 		},
 		getFormData: function () {
-			var out = {};
-			out.stName = this.ctName;
+			this.formData = new FormData();
+			this.formData.set("stName", this.ctName);
 			for (let index = 0; index < this.importForm.length; index++) {
-				var element = this.importForm[index];
-				out[element.id] = element.value;
+				const element = this.importForm[index];
+				if (element.value) {
+					if (element.type != 'file') {
+						this.formData.set(element.id, element.value);
+					}
+				}
 			}
-			return out;
+			for (let index = 0; index < this.formFiles.length; index++) {
+				const element = this.formFiles[index];
+				if (element.id && element.value) {
+					this.formData.set(element.id, element.value);
+				}
+			}
+			return this.formData;
 		},
 		submitImportForm: function () {
+			this.getFormData();
 			var vm = this;
-			var importData = this.getFormData();
 			$.ajax({
 				url: '/api/content/' + this.importOptions.saveMode + '/1',
 				method: this.importOptions.inMode,
-				data: JSON.stringify(importData),
-				contentType: 'application/json',
+				data: this.formData,
+				cache: false,
+				contentType: false,
+				processData: false,
 				success: function (data) {
 					CrudApp.sessionLog.addEntry("submitImportForm(): Import Success", 3);
 				},
@@ -1275,6 +1319,7 @@ CrudApp.vue = new Vue({
 			consoleInputListener: false,
 			users: null,
 			dotcms: null,
+			host: null,
 			result: null
 		}
 	},
@@ -1342,6 +1387,22 @@ CrudApp.vue = new Vue({
 						CrudApp.sessionLog.addEntry("getUserList(): Retrieved User List", 3);
 					} else {
 						CrudApp.sessionLog.addEntry("getUserList(): Return data invalid", 1);
+					}
+				}
+			});
+		},
+		getHostData: function () {
+			var vm = this;
+			$.ajax({
+				method: 'GET',
+				url: '/api/v1/site/currentSite',
+				contentType: 'application/json',
+				success: function (data) {
+					if (CrudApp.hasEntityList(data)) {
+						vm.host = data.entity;
+						CrudApp.sessionLog.addEntry("getHostData(): Retrieved Host Data", 3);
+					} else {
+						CrudApp.sessionLog.addEntry("getHostData(): Return data invalid", 1);
 					}
 				}
 			});
@@ -1447,6 +1508,7 @@ CrudApp.vue = new Vue({
 	mounted: function () {
 		this.getCTList();
 		this.getUserList();
+		this.getHostData();
 		if (!Cookies.get('DWRSESSIONID')) {
 			this.getDwrSessionId();
 		}

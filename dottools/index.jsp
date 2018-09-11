@@ -183,7 +183,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 
 		<div class="grid-x">
 			<div class="cell small-12">
-				<div v-if="consoleOutput && outputFormat == 'preformatted'" class="velocity-output-pre" contentEditable="true">{{consoleOutput}}</div>
+				<div v-if="consoleOutput && outputFormat == 'preformatted'" class="velocity-output-pre" contentEditable="true"><pre>{{ consoleOutput }}</pre></div>
 				<div v-if="consoleOutput && outputFormat == 'html'" class="velocity-output" v-html="consoleOutput"></div>
 			</div>
 		</div>
@@ -448,11 +448,11 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 <script type="text/x-template" id="import-form">
 	<div v-if="importForm">
 
-		<form>
+		<form enctype="multipart/form-data">
 
 			<div class="grid-container full">
 				<div class="grid-x grid-padding-x">
-					<input type="button" class="button primary" v-on:click="submitImportForm()" value="Submit">
+					<input type="button" class="button primary" v-on:click="submitImportForm" value="Submit">
 				</div>
 			</div>
 
@@ -465,7 +465,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 						
 						<div v-if="element.ele == 'input'">
 							<label>{{ element.label }} ({{ element.fieldType }}) [{{ element.id }}]
-								<input :type="element.type" v-model="element.value" :name="element.id" :placeholder="element.label">
+								<input :type="element.type" v-model="element.value" :name="element.id" v-on:change="inputChange" :placeholder="element.label">
 								<a v-if="element.fieldType == 'ImmutableHostFolderField'" class="button small primary" v-on:click="addHostId(element)">Add Host Id</a>
 							</label>
 							
@@ -484,7 +484,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 
 			<div class="grid-container full">
 				<div class="grid-x grid-padding-x">
-					<input type="button" class="button primary" v-on:click="submitImportForm()" value="Submit">
+					<input type="button" class="button primary" v-on:click="submitImportForm" value="Submit">
 				</div>
 			</div>
 
