@@ -1,4 +1,5 @@
 <%@page import="com.liferay.portal.model.*"%>
+<%@page import="com.liferay.portal.util.ReleaseInfo"%>
 <%@page import="com.dotmarketing.util.PortletID"%>
 <%@page import="com.dotmarketing.portlets.structure.model.Field"%>
 <%@page import="com.dotmarketing.util.UtilMethods"%>
@@ -94,28 +95,28 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 		</div>
 
 		<div class="cell small-9 medium-cell-block-y">
-			<div v-if="pane == 'default'">
-				<dotcms-info :dotcms="dotcms" :pane="pane"></dotcms-info>
+			<div v-show="pane == 'default'">
+				<dotcms-info :dotcms="dotcms" :dotcms-version="dotcmsVersion" :pane="pane"></dotcms-info>
 			</div>
-			<div v-if="pane == 'console'">
+			<div v-show="pane == 'console'">
 				<velocity-console :ct="ct" :users="users"></velocity-console>
 			</div>	
-			<div v-if="pane == 'content-manager'">
+			<div v-show="pane == 'content-manager'">
 				<content-manager :ct="ct" :users="users"></content-manager>
 			</div>
-			<div v-if="pane == 'content-import'">
+			<div v-show="pane == 'content-import'">
 				<query-import-box :ct="ct"></query-import-box>
 			</div>
-			<div v-if="pane == 'content-export'">
+			<div v-show="pane == 'content-export'">
 				<query-box :ct="ct"></query-box>
 			</div>
-			<div v-if="pane == 'structure-import'">
+			<div v-show="pane == 'structure-import'">
 				<structure-import-box></structure-import-box>
 			</div>
-			<div v-if="pane == 'structure-export'">
+			<div v-show="pane == 'structure-export'">
 				<structure-export-box :ct="ct"></structure-export-box>
 			</div>
-			<div v-if="pane == 'api'">
+			<div v-show="pane == 'api'">
 				<dot-api :ct="ct"></dot-api>
 			</div>
 		</div>
@@ -133,11 +134,26 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	<div>
 		<div class="grid-x grid-padding-x grid-container">
 			<div class="cell auto">
-				<div v-if="dotcms">
+				<div v-if="dotcms" style="margin-bottom:1.5rem;">
 					<h3>dotTools Utilities</h3>
 
-						<dt>dotCMS Version</dt>
-						<dd>{{ dotcms.config.releaseInfo.version }}</dd>
+					<dt>dotCMS Version</dt>
+					<dd>{{ dotcms.config.releaseInfo.version }}</dd>
+				</div>
+				<div v-if="dotcms && dotcmsVersion == 4">
+					<div class="callout warning">
+						<h5>You are running an old version of dotCMS ({{ dotcms.config.releaseInfo.version }}). Some functionality may not work properly.</h5>
+					</div>
+				</div>
+				<div v-if="dotcms && dotcmsVersion == 3">
+					<div class="callout warning">
+						<h5>You are running a really old version of dotCMS ({{ dotcms.config.releaseInfo.version }}). Some functionality may not work properly.</h5>
+					</div>
+				</div>
+				<div v-if="!dotcms && !dotcmsVersion">
+					<div class="callout alert">
+						<h5>Unable to determine version of dotCMS. Some functionality may not work properly.</h5>
+					</div>
 				</div>
 
 				<ul class="no-bullet pane-nav-list">
@@ -556,11 +572,14 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 			<div class="cell small-12">
 				<label>Params: <input type="text" v-model="query.params" placeholder="Params"></label>
 			</div>
-			<div class="cell small-3">
+			<div class="cell small-2">
 				<label>Method: <input type="text" v-model="query.method" placeholder="Method"></label>
 			</div>
-			<div class="cell small-3">
-				<label>Data Type: <input type="text" v-model="query.dataType" placeholder="Data Type"></label>
+			<div class="cell small-2">
+				<label>Send Type: <input type="text" v-model="query.contentType" placeholder="Data Type"></label>
+			</div>
+			<div class="cell small-2">
+				<label>Receive Type: <input type="text" v-model="query.dataType" placeholder="Data Type"></label>
 			</div>
 			<div class="cell small-12">
 				<label>Payload: <textarea v-model="query.payload" placeholder="Payload" style="height:10rem;"></textarea></label>
@@ -603,7 +622,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 		$("[data-menu-underline-from-center] a").addClass("underline-from-center");
 	});
 	var dotHostId = "<%=hostId%>";
-	
+	var dotVersion = "<%=ReleaseInfo.getVersion()%>";
 </script>
 <script src="js/dot-tools.js"></script>
 </body>

@@ -59,6 +59,10 @@ p, a, input, label {
 	color: #bbb;
 }
 
+.callout h5 {
+    color: #101010;
+}
+
 div.header>h1 {
     text-align: center;
 }

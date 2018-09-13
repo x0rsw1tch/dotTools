@@ -24,6 +24,8 @@ var CrudApp = {
 	dwrsessionid: null,
 	dwrBatchId: 1,
 	dotcms: null,
+	dotcmsVersion: null,
+
 	getWorkflowId: function (name) {
 		switch (name) {
 			case 'publish':
@@ -215,6 +217,30 @@ var CrudApp = {
 
 CrudApp.util = {
 
+	determineDotcmsVersion: function () {
+		if (dotVersion) {
+			if (dotVersion.startsWith("5.")) {
+				return 5;
+			} else if (dotVersion.startsWith("4.")) {
+				return 4;
+			} else if (dotVersion.startsWith("3.")) {
+				return 3;
+			} else {
+				return null;
+			}
+		} else if (arguments && arguments[0]) {
+			if (arguments[0].startsWith("5.")) {
+				return 5;
+			} else if (arguments[0].startsWith("4.")) {
+				return 4;
+			} else if (arguments[0].startsWith("3.")) {
+				return 3;
+			} else {
+				return null;
+			}
+		}
+	},
+	
 	pruneInodes: function (identifier) {
 		CrudApp.sessionLog.addEntry("Getting list of inodes for " + identifier, 3);
 		var inodeList = [];
@@ -246,7 +272,6 @@ CrudApp.util = {
 
 	pruneInodesQueue: function (inodes) {
 		CrudApp.sessionLog.addEntry("Starting queue for inode list..." + inodes.toString(), 3);
-		console.log(inodes);
 		for (var i = 0; i < inodes.length; i++) {
 			CrudApp.util.deleteInode(inodes[i], (i * 250));
 		}
@@ -279,9 +304,272 @@ CrudApp.util = {
 
 };
 
+
+CrudApp.dwr = {
+
+	getWorkflowPayload: function (workflow, item) {
+		
+		if (CrudApp.dotcmsVersion === 5) {
+
+			var payloadObject = CrudApp.dwr.payloads.v5.contentlet();
+
+			var workflowIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "c0-param2");
+			var inodeIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "c0-param4");
+			var batchIdIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "batchId");
+			var sessionIdIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "scriptSessionId");
+			
+			payloadObject[workflowIndex].value = "string:" + CrudApp.getWorkflowId(workflow);
+			payloadObject[inodeIndex].value =  "string:" + item;
+			payloadObject[batchIdIndex].value = CrudApp.dwrBatchId;
+			payloadObject[sessionIdIndex].value = CrudApp.dwrsessionid;
+
+			return CrudApp.dwr.stringifyPayload(payloadObject);
+
+		} else if (CrudApp.dotcmsVersion === 4) {
+
+			
+			if (workflow == "delete") {
+				// Deleting contentlets in dotCMS 4 is a GET request without a payload
+				return null;
+
+			} else {
+
+				var payloadObject = CrudApp.dwr.payloads.v4.contentlet(workflow);
+
+				var inodeIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "c0-param0");
+				var batchIdIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "batchId");
+				var sessionIdIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "scriptSessionId");
+
+				payloadObject[inodeIndex].value =  "string:" + item;
+				payloadObject[batchIdIndex].value = CrudApp.dwrBatchId;
+				payloadObject[sessionIdIndex].value = CrudApp.dwrsessionid;
+
+				return CrudApp.dwr.stringifyPayload(payloadObject);
+
+			}
+		
+		} else if (CrudApp.dotcmsVersion === 3) {
+
+		}
+			
+
+		return null;
+	},
+
+	getPayloadIndex: function (payload, string) {
+		return payload.findIndex(function (element) {
+			return element.id == string;
+		});
+	},
+
+	stringifyPayload: function (payload) {
+		var out = String('');
+		for (let index = 0; index < payload.length; index++) {
+			const element = payload[index];
+			out += element.id + "=" + element.value + "\n";
+		}
+
+		return out;
+	},
+
+
+	getFile: function (type, operation, action, inode, structureInode) {
+
+		if (CrudApp.dotcmsVersion === 5) {
+
+			if (type = 'contentlet') {
+				return CrudApp.dwr.files.v5.contentlet();
+			}
+
+		} else if (CrudApp.dotcmsVersion === 4) {
+
+			if (type == 'contentlet') {
+				if (operation == 'workflow') {
+					
+					var queryParams = "";
+					var dwrFile = CrudApp.dwr.files.v4.contentlet(action);
+					
+					if (action == "delete") {
+
+						queryParams += "p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c" + "&";
+						queryParams += "p_p_id=content" + "&";
+						queryParams += "p_p_action=1" + "&";
+						queryParams += "p_p_state=maximized" + "&";
+						queryParams += "p_p_mode=view" + "&";
+						queryParams += "_content_struts_action=/ext/contentlet/edit_contentlet" + "&";
+						queryParams += "_content_cmd=full_delete" + "&";
+						queryParams += "structure_id=" + structureInode + "&";
+						queryParams += "contentStructureType=1" + "&";
+						queryParams += "inode=" + inode + "&";
+						queryParams += "referer=p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=content&p_p_action=1&p_p_state=maximized&_content_struts_action=%2Fext%2Fcontentlet%2Fview_contentlets";
+
+					}
+
+					return String(dwrFile + queryParams);
+				}
+			}
+
+		} else if (CrudApp.dotcmsVersion === 3) {
+
+		}
+		
+	},
+
+	
+	getRequestMethod: function (type, operation, action) {
+		
+		if (CrudApp.dotcmsVersion === 4) {
+			if (type == 'contentlet') {
+				if (operation == 'workflow') {
+					if (action == "delete") {
+						return "GET";
+					}
+				}
+			}
+		}
+
+		return "POST";
+	},
+	
+	
+	payloads: {
+		v5: {
+			contentlet: function () {
+				return [
+					{ "id": "callCount",       "value": "1" },
+					{ "id": "windowName",      "value": "c0-param2" },
+					{ "id": "c0-scriptName",   "value": "BrowserAjax" },
+					{ "id": "c0-methodName",   "value": "saveFileAction" },
+					{ "id": "c0-id",           "value": "0" },
+					{ "id": "c0-param0",       "value": "string:" },
+					{ "id": "c0-param1",       "value": "string:" },
+					{ "id": "c0-param2",       "value":  null },
+					{ "id": "c0-param3",       "value": "string:" },
+					{ "id": "c0-param4",       "value":  null },
+					{ "id": "c0-param5",       "value": "string:" },
+					{ "id": "c0-param6",       "value": "string:" },
+					{ "id": "c0-param7",       "value": "string:" },
+					{ "id": "c0-param8",       "value": "string:" },
+					{ "id": "c0-param9",       "value": "string:" },
+					{ "id": "c0-param10",      "value": "string:" },
+					{ "id": "batchId",         "value": null },
+					{ "id": "instanceId",      "value": "0" },
+					{ "id": "page",            "value": "/c/portal/layout?" },
+					{ "id": "scriptSessionId", "value": null }
+				]
+			}
+		},
+		v4: {
+			contentlet: function (workflow) {
+				switch (workflow) {
+					case "publish":
+						return [
+							{ "id": "callCount",       "value": "1" },
+							{ "id": "windowName",      "value": "c0-param2" },
+							{ "id": "c0-scriptName",   "value": "BrowserAjax" },
+							{ "id": "c0-methodName",   "value": "publishAsset" },
+							{ "id": "c0-id",           "value": "0" },
+							{ "id": "c0-param0",       "value": null }, // inode
+							{ "id": "batchId",         "value": null },
+							{ "id": "instanceId",      "value": "0" },
+							{ "id": "page",            "value": "/c/portal/layout?" },
+							{ "id": "scriptSessionId", "value": null } // DWRSESSIONID
+						];
+					case "unpublish":
+						return [
+							{ "id": "callCount",       "value": "1" },
+							{ "id": "windowName",      "value": "c0-param2" },
+							{ "id": "c0-scriptName",   "value": "BrowserAjax" },
+							{ "id": "c0-methodName",   "value": "unPublishAsset" },
+							{ "id": "c0-id",           "value": "0" },
+							{ "id": "c0-param0",       "value": null }, // inode
+							{ "id": "batchId",         "value": null },
+							{ "id": "instanceId",      "value": "0" },
+							{ "id": "page",            "value": "/c/portal/layout?" },
+							{ "id": "scriptSessionId", "value": null } // DWRSESSIONID
+						];
+					case "archive":
+						return [
+							{ "id": "callCount",       "value": "1" },
+							{ "id": "windowName",      "value": "c0-param2" },
+							{ "id": "c0-scriptName",   "value": "BrowserAjax" },
+							{ "id": "c0-methodName",   "value": "archiveAsset" },
+							{ "id": "c0-id",           "value": "0" },
+							{ "id": "c0-param0",       "value": null }, // inode
+							{ "id": "batchId",         "value": null },
+							{ "id": "instanceId",      "value": "0" },
+							{ "id": "page",            "value": "/c/portal/layout?" },
+							{ "id": "scriptSessionId", "value": null } // DWRSESSIONID
+						];
+					case "unarchive":
+						return [
+							{ "id": "callCount",       "value": "1" },
+							{ "id": "windowName",      "value": "c0-param2" },
+							{ "id": "c0-scriptName",   "value": "BrowserAjax" },
+							{ "id": "c0-methodName",   "value": "unArchiveAsset" },
+							{ "id": "c0-id",           "value": "0" },
+							{ "id": "c0-param0",       "value": null }, // inode
+							{ "id": "batchId",         "value": null },
+							{ "id": "instanceId",      "value": "0" },
+							{ "id": "page",            "value": "/c/portal/layout?" },
+							{ "id": "scriptSessionId", "value": null }, // DWRSESSIONID
+						];
+					case "delete":
+						return null;
+				}
+			}
+		}
+	},
+
+	files: {
+		v5: {
+			contentlet: function () {
+				return '/dwr/call/plaincall/BrowserAjax.saveFileAction.dwr';
+			}
+		},
+		v4: {
+			contentlet: function (workflow) {
+				switch (workflow) {
+					case "publish":
+						return "/dwr/call/plaincall/BrowserAjax.publishAsset.dwr";
+					
+					case "unpublish":
+						return "/dwr/call/plaincall/BrowserAjax.unPublishAsset.dwr";
+					
+					case "archive":
+						return "/dwr/call/plaincall/BrowserAjax.archiveAsset.dwr";
+					
+					case "unarchive":
+						return "/dwr/call/plaincall/BrowserAjax.unArchiveAsset.dwr";
+
+					case "delete":
+						// Contentlet delete doesn't use DWR
+						return "/c/portal/layout?";
+				}
+			}
+		}
+		
+	},
+	
+	
+	session: {
+
+		getSessionId: function () {
+
+		},
+
+		extractSessionId: function () {
+
+		}
+
+	}
+
+
+}
+
 Vue.component('dotcmsInfo', {
 	template: '#dotcms-info',
-	props: ["dotcms", "pane"],
+	props: ["dotcms", "dotcmsVersion", "pane"],
 	methods: {
 		setPane: function (pane) {
 			this.$root.pane = pane;
@@ -325,8 +613,6 @@ Vue.component('velocityConsole', {
 				CrudApp.util.addToConsoleHistory(this.consoleInput);
 			}
 			
-			console.log(this.lastDispatchDiff());
-
 			if (this.lastDispatchDiff() < 350 || this.floodContol) {
 				this.floodControl = true;
 				this.loading = true
@@ -396,7 +682,6 @@ Vue.component('velocityConsole', {
 	},
 	watch: {
 		liveUpdate: function (val) {
-			console.log("watcher trigger");
 			this.checkLiveUpdateStatus();
 		},
 		outputFormat: function (val) {
@@ -422,7 +707,7 @@ Vue.component('contentManager', {
 			hasResults: false,
 			queryErrors: null,
 			query: {
-				query: "+(conhost:48190c8c-42c4-46af-8d1a-0cd5db894797 conhost:SYSTEM_HOST) -contentType:Host -baseType:3 -contentType:Persona +languageId:1 +deleted:false working:true",
+				query: CrudApp.host + " -contentType:Host -baseType:3 -contentType:Persona +languageId:1 +deleted:false working:true",
 				query2: "",
 				offset: 0,
 				limit: 0,
@@ -445,7 +730,13 @@ Vue.component('contentManager', {
 						vm.hasResults = true;
 						CrudApp.sessionLog.addEntry("contentManager sendQuery(): Callback Success", 3);
 					} else {
-						CrudApp.sessionLog.addEntry("contentManager sendQuery(): Return Data Invalid", 2);
+						// dotCMS 4 returns text/plain for some reason
+						if (JSON.parse(data)) {
+							vm.results = JSON.parse(data).contentlets;
+							vm.hasResults = true;
+						} else {
+							CrudApp.sessionLog.addEntry("contentManager sendQuery(): Return Data Invalid", 2);
+						}
 					}
 				},
 				error: function (xhr, status, error) {
@@ -488,7 +779,7 @@ Vue.component('contentList', {
 
 			var contentletStructure = this.findStructureById(result.stInode);
 			if (contentletStructure) {
-				var contentletDisplayField = this.findContentletDisplayField(contentletStructure);
+				var contentletDisplayField = this.findContentletDisplayField(contentletStructure).variable;
 				return result[contentletDisplayField];
 			}
 
@@ -509,27 +800,35 @@ Vue.component('contentList', {
 		setResult: function (result) {
 			this.result = result;
 		},
-		findStructureById: function (id) {
-			for (var i = 0; i < this.ct.length; i++) {
-				if (id === this.ct[i].id) {
-					return this.ct[i];
-				}
-			}
-		},
-		findContentletDisplayField: function (structure) {
-			for (var i = 0; i < structure.fields.length; i++) {
-				if (structure.fields[i].listed === true) {
-					return structure.fields[i].variable;
-				}
-			}
-		},
 		contentActions: function (action, ele) {
 			this.actionSelected = action;
 		},
+		findContentletDisplayField: function (structure) {
+			return structure.fields.find(function (element) {
+				if (element.listed === true) {
+					return element;
+				};
+			});
+			
+		},
+		findStructureById: function (id) {
+			return this.ct.find(function (element) {
+				return element.id === id;
+			});
+		},
 		getIdentifierByInode: function (inode) {
-			for (var i = 0; i < this.results.length; i++) {
-				if (this.results[i].inode === inode) {
-					return this.results[i].identifier;
+			for (let index = 0; index < this.results.length; index++) {
+				const element = this.results[index];
+				if (element.inode === inode) {
+					return element.identifier;
+				}
+			}
+		},
+		getStructureByInode: function (inode) {
+			for (let index = 0; index < this.results.length; index++) {
+				const element = this.results[index];
+				if (element.inode === inode) {
+					return element.stInode;
 				}
 			}
 		},
@@ -550,43 +849,37 @@ Vue.component('contentList', {
 
 			} else {
 				CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Applying workflow actions to " + this.selectedContentlets.length + " contentlets..." , 3);
-				for (var i = 0; i < this.selectedContentlets.length; i++) {
+				for (let index = 0; index < this.selectedContentlets.length; index++) {
+					const element = this.selectedContentlets[index];
 					$.ajax({
-						method: 'POST',
-						url: '/dwr/call/plaincall/BrowserAjax.saveFileAction.dwr',
+						method: CrudApp.dwr.getRequestMethod('contentlet', 'workflow', this.actionSelected),
+						url: CrudApp.dwr.getFile('contentlet', 'workflow', this.actionSelected, element, this.getStructureByInode(element)),
 						dataType: "text",
-						data: 	'callCount=1' + "\n" +
-								'windowName=c0-param2' + "\n" +
-								'c0-scriptName=BrowserAjax' + "\n" +
-								'c0-methodName=saveFileAction' + "\n" +
-								'c0-id=0' + "\n" +
-								'c0-param0=string:' + "\n" +
-								'c0-param1=string:' + "\n" +
-								'c0-param2=string:' + CrudApp.getWorkflowId(this.actionSelected) + "\n" + // Workflow Id
-								'c0-param3=string:' + "\n" +
-								'c0-param4=string:' + this.selectedContentlets[i] + "\n" +	// Contentlet Inode
-								'c0-param5=string:' + "\n" +
-								'c0-param6=string:' + "\n" +
-								'c0-param7=string:' + "\n" +
-								'c0-param8=string:' + "\n" +
-								'c0-param9=string:' + "\n" +
-								'c0-param10=string:' + "\n" +
-								'batchId=' + CrudApp.dwrBatchId + "\n" +
-								'instanceId=0' + "\n" +
-								'page=%2Fc%2Fportal%2Flayout%3F' + "\n" +
-								'scriptSessionId=' + CrudApp.dwrsessionid,
+						data: CrudApp.dwr.getWorkflowPayload(this.actionSelected, element),
 						success: function(data) {
-							if (data.indexOf('Workflow executed') > 0 && data.indexOf('success')) {
-								CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Success", 3);
-							} else {
-								CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Invalid return data", 2);
-							}
+							vm.handleActionResponse(data);
 						},
 						error: function (xhr, status, error) {
 							console.error('Execute workflow action failed: ', xhr, status, error);
 							CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Error: " + xhr, 1);
 						}
 					});
+				}
+			}
+		},
+		handleActionResponse: function (data) {
+			if (CrudApp.dotcmsVersion === 5) {
+				if (data.indexOf('Workflow executed') > 0 && data.indexOf('success')) {
+					CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Success", 3);
+				} else {
+					CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Invalid return data", 2);
+				}
+
+			} else if (CrudApp.dotcmsVersion === 4) {
+				if (data.length > 100 & data.indexOf('nullPointerException') === -1) {
+					CrudApp.sessionLog.addEntry("contentManager Apply Workflow: No nullPointerException (assuming success)", 3);
+				} else {
+					CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Success conditions not met (assuming failure)", 2);
 				}
 			}
 		}
@@ -1141,7 +1434,6 @@ Vue.component('structureImportBox', {
 			if (importObj.hasOwnProperty('fields') && Object.prototype.toString.call(importObj.fields) === '[object Array]') {
 				for (var i = 0; i < importObj.fields.length; i++) {
 					importObj.fields[i].contentTypeId = vm.importedStructure.id;
-					console.log('Sending: ', importObj.fields[i]);
 					$.ajax({
 						method: 'POST',
 						data: JSON.stringify(importObj.fields[i]),
@@ -1265,6 +1557,7 @@ Vue.component('dotApi', {
 				params: null,
 				method: null,
 				dataType: null,
+				contentType: null,
 				payload: null
 			},
 			showOutput: false,
@@ -1287,8 +1580,8 @@ Vue.component('dotApi', {
 			$.ajax({
 				method: this.query.method,
 				url: uriParams,
-				contentType: this.query.dataType,
-				dataType: 'text',
+				contentType: this.query.contentType,
+				dataType: this.query.dataType,
 				success: function (data) {
 					CrudApp.sessionLog.addEntry("dotApi sendRequest(): Request Callback success", 3);
 					vm.showOutput = true;
@@ -1319,6 +1612,7 @@ CrudApp.vue = new Vue({
 			consoleInputListener: false,
 			users: null,
 			dotcms: null,
+			dotcmsVersion: null,
 			host: null,
 			result: null
 		}
@@ -1427,7 +1721,6 @@ CrudApp.vue = new Vue({
 								+ "\t"
 								+ value.substring(end));
 					this.selectionStart = this.selectionEnd = start + 1;
-					console.log('here');
 				} else if ((e.ctrlKey || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
 					e.preventDefault();
 					vcSendQuery();
@@ -1481,10 +1774,32 @@ CrudApp.vue = new Vue({
 						if (CrudApp.hasEntityList(data)) {
 							CrudApp.dotcms = data.entity;
 							vm.dotcms = data.entity;
+							vm.getDotcmsVersion();
 						}
 					}
 				});
 			}
+		},
+		getDotcmsVersion: function () {
+			if (CrudApp.dotcmsVersion) {
+				this.dotcmsVersion = CrudApp.dotcmsVersion;
+			} else {	
+				if (this.dotcmsConfigHasReleaseVersion()) {
+					this.dotcmsVersion = CrudApp.util.determineDotcmsVersion(this.dotcms.config.releaseInfo.version);
+				} else {
+					this.dotcmsVersion = null;
+				}
+			}
+		},
+		dotcmsConfigHasReleaseVersion: function () {
+			if (this.dotcms && this.dotcms.config) {
+				if (this.dotcms.config.releaseInfo && this.dotcms.config.releaseInfo.version) {
+					if (typeof this.dotcms.config.releaseInfo.version == 'string') {
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 	},
 	watch: {
@@ -1511,7 +1826,23 @@ CrudApp.vue = new Vue({
 		this.getHostData();
 		if (!Cookies.get('DWRSESSIONID')) {
 			this.getDwrSessionId();
+		} else {
+			CrudApp.dwrsessionid = Cookies.get('DWRSESSIONID');
 		}
 		this.getDotcmsInfo();
 	}
 });
+
+document.addEventListener("DOMContentLoaded", function (e) {
+	CrudApp.dotcmsVersion = CrudApp.util.determineDotcmsVersion();
+});
+
+
+
+
+// Polys
+if (!String.prototype.startsWith) {
+	String.prototype.startsWith = function(search, pos) {
+		return this.substr(!pos || pos < 0 ? 0 : +pos, search.length) === search;
+	};
+}
