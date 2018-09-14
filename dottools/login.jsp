@@ -1,7 +1,28 @@
-<%@page import="com.dotmarketing.util.PortletID"%>
+<%@page import="com.liferay.portal.util.ReleaseInfo"%>
+<%@page import="com.dotmarketing.portlets.structure.model.Field"%>
 <%@page import="com.dotmarketing.util.UtilMethods"%>
+<%@page import="com.dotmarketing.business.APILocator"%>
+<%@page import="java.util.GregorianCalendar"%>
+<%@page import="java.util.Date"%>
+<%@page import="java.util.Arrays"%>
+<%@page import="java.text.SimpleDateFormat"%>
+<%@page import="com.dotmarketing.util.Parameter"%>
+<%@page import="com.dotmarketing.portlets.categories.model.Category"%>
+<%@page import="com.dotmarketing.portlets.categories.business.CategoryAPI"%>
+<%@page import="com.dotmarketing.business.APILocator"%>
+<%@page import="com.dotmarketing.util.InodeUtils"%>
+<%@page import="com.dotmarketing.exception.DotSecurityException"%>
+<%@page import="com.dotmarketing.util.Logger"%>
+<%@page import="com.dotmarketing.portlets.structure.business.FieldAPI"%>
+<%@page import="com.dotmarketing.util.VelocityUtil"%>
 <%@page import="com.dotmarketing.business.web.WebAPILocator"%>
-<% if (!WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) { %>
+<%@page import="com.dotmarketing.business.RoleAPI"%>
+<%@page import="com.dotmarketing.portlets.contentlet.business.HostAPI"%>
+<%@page import="com.dotmarketing.business.PermissionAPI"%>
+<%@page import="com.dotmarketing.beans.Host"%>
+<%
+String hostId = (String) session.getAttribute(com.dotmarketing.util.WebKeys.CMS_SELECTED_HOST_ID);
+if (!WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) { %>
 <html class="no-js" lang="en_US">
 <!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
@@ -39,6 +60,34 @@ body {
 <script src="js/foundation.min.js"></script>
 <script src="js/vue.js"></script>
 <script>
+	var dotHostId = "<%=hostId%>";
+	var dotVersion = "<%=ReleaseInfo.getVersion()%>";
+	var dotcmsVersion = null;
+
+	function determineDotcmsVersion () {
+		if (dotVersion) {
+			if (dotVersion.startsWith("5.")) {
+				return 5;
+			} else if (dotVersion.startsWith("4.")) {
+				return 4;
+			} else if (dotVersion.startsWith("3.")) {
+				return 3;
+			} else {
+				return null;
+			}
+		} else if (arguments && arguments[0]) {
+			if (arguments[0].startsWith("5.")) {
+				return 5;
+			} else if (arguments[0].startsWith("4.")) {
+				return 4;
+			} else if (arguments[0].startsWith("3.")) {
+				return 3;
+			} else {
+				return null;
+			}
+		}
+	}
+	
 	$(document).foundation();
 	document.addEventListener("DOMContentLoaded", function (e) {
 		$('#login-form').keydown(function (e) {
@@ -57,6 +106,8 @@ body {
 			e.preventDefault();
 			loginUser();
 		});
+
+		dotcmsVersion = determineDotcmsVersion();
 	});
 
 	function isDataValid () {
@@ -80,22 +131,44 @@ body {
 				'password': $('#password').val(),
 				'expirationDays': 10
 			};
-			$.ajax({
-				url: '/api/v1/authentication/api-token',
-				method: 'POST',
-				data: JSON.stringify(inData),
-				contentType: "application/json",
-				success: function (data) {
-					if (data.hasOwnProperty('entity') && data.entity) {
-						if (data.entity.hasOwnProperty('token') && data.entity.token) {
-							if (data.entity.token.length > 0) {
-								localStorage.setItem('crudToken', data.entity.token);
-								window.location.href = './';
+			if (dotcmsVersion > 3) {
+				$.ajax({
+					url: '/api/v1/authentication/api-token',
+					method: 'POST',
+					data: JSON.stringify(inData),
+					contentType: "application/json",
+					success: function (data) {
+						if (data.hasOwnProperty('entity') && data.entity) {
+							if (data.entity.hasOwnProperty('token') && data.entity.token) {
+								if (data.entity.token.length > 0) {
+									localStorage.setItem('crudToken', data.entity.token);
+									window.location.href = './';
+								}
 							}
 						}
 					}
-				}
-			});
+				});
+			} else if (dotcmsVersion === 3) {
+				var inData = {
+					"my_account_cmd"           : "auth",
+					"referer"                  : "/dottools",
+					"my_account_r_m"           : "false",
+					"password"                 : $('#password').val(),
+					"my_account_login"         : $('#user').val(),
+					"my_account_email_address" : "",
+					"native"                   : "true"
+				};
+
+				$.ajax({
+					url: '/c/portal_public/login',
+					method: 'POST',
+					data: $.param(inData),
+					contentType: "application/x-www-form-urlencoded",
+					success: function (data) {
+						window.location.href = './';
+					}
+				});
+			}
 		}
 	}
 </script>

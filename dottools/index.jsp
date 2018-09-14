@@ -1,6 +1,4 @@
-<%@page import="com.liferay.portal.model.*"%>
 <%@page import="com.liferay.portal.util.ReleaseInfo"%>
-<%@page import="com.dotmarketing.util.PortletID"%>
 <%@page import="com.dotmarketing.portlets.structure.model.Field"%>
 <%@page import="com.dotmarketing.util.UtilMethods"%>
 <%@page import="com.dotmarketing.business.APILocator"%>
@@ -96,7 +94,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 
 		<div class="cell small-9 medium-cell-block-y">
 			<div v-show="pane == 'default'">
-				<dotcms-info :dotcms="dotcms" :dotcms-version="dotcmsVersion" :pane="pane"></dotcms-info>
+				<dotcms-info :dotcms="dotcms" :dotcms-version="dotcmsVersion" :version="version" :pane="pane"></dotcms-info>
 			</div>
 			<div v-show="pane == 'console'">
 				<velocity-console :ct="ct" :users="users"></velocity-console>
@@ -134,23 +132,23 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	<div>
 		<div class="grid-x grid-padding-x grid-container">
 			<div class="cell auto">
-				<div v-if="dotcms" style="margin-bottom:1.5rem;">
+				<div v-if="version" style="margin-bottom:1.5rem;">
 					<h3>dotTools Utilities</h3>
 
 					<dt>dotCMS Version</dt>
-					<dd>{{ dotcms.config.releaseInfo.version }}</dd>
+					<dd>{{ version.dotVersion }}</dd>
 				</div>
-				<div v-if="dotcms && dotcmsVersion == 4">
+				<div v-if="version && version.dotcmsVersion == 4">
 					<div class="callout warning">
-						<h5>You are running an old version of dotCMS ({{ dotcms.config.releaseInfo.version }}). Some functionality may not work properly.</h5>
+						<h5>You are running an old version of dotCMS ({{ version.dotVersion }}). Some functionality may not work properly.</h5>
 					</div>
 				</div>
-				<div v-if="dotcms && dotcmsVersion == 3">
+				<div v-if="version && version.dotcmsVersion == 3">
 					<div class="callout warning">
-						<h5>You are running a really old version of dotCMS ({{ dotcms.config.releaseInfo.version }}). Some functionality may not work properly.</h5>
+						<h5>You are running a really old version of dotCMS ({{ version.dotVersion }}). Some functionality may not work properly.</h5>
 					</div>
 				</div>
-				<div v-if="!dotcms && !dotcmsVersion">
+				<div v-if="!version">
 					<div class="callout alert">
 						<h5>Unable to determine version of dotCMS. Some functionality may not work properly.</h5>
 					</div>
@@ -623,6 +621,8 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 	});
 	var dotHostId = "<%=hostId%>";
 	var dotVersion = "<%=ReleaseInfo.getVersion()%>";
+	var dotcmsVersion = null;
+
 </script>
 <script src="js/dot-tools.js"></script>
 </body>

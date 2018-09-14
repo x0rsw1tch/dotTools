@@ -67,7 +67,7 @@ var CrudApp = {
 				location.href = '/';
 			},
 			error: function () {
-				location.href = "/apit/v1/logout"
+				location.href = "login.jsp"
 			}
 		});
 	},
@@ -565,11 +565,14 @@ CrudApp.dwr = {
 	}
 
 
-}
+};
+
+dotcmsVersion = CrudApp.util.determineDotcmsVersion();
+CrudApp.dotcmsVersion = CrudApp.util.determineDotcmsVersion();
 
 Vue.component('dotcmsInfo', {
 	template: '#dotcms-info',
-	props: ["dotcms", "dotcmsVersion", "pane"],
+	props: ["dotcms", "dotcmsVersion", "pane", "version"],
 	methods: {
 		setPane: function (pane) {
 			this.$root.pane = pane;
@@ -1614,7 +1617,11 @@ CrudApp.vue = new Vue({
 			dotcms: null,
 			dotcmsVersion: null,
 			host: null,
-			result: null
+			result: null,
+			version: {
+				dotVersion: window.dotVersion,
+				dotcmsVersion: window.dotcmsVersion
+			}
 		}
 	},
 	methods: {
@@ -1832,11 +1839,6 @@ CrudApp.vue = new Vue({
 		this.getDotcmsInfo();
 	}
 });
-
-document.addEventListener("DOMContentLoaded", function (e) {
-	CrudApp.dotcmsVersion = CrudApp.util.determineDotcmsVersion();
-});
-
 
 
 

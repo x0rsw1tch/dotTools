@@ -1,0 +1,85 @@
+Publish
+GET
+http://192.168.140.130/c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&p_p_mode=view&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&_EXT_11_cmd=full_publish_list&structure_id=9e0a09af-a7be-4c83-9d5e-c6cc9c050219&contentStructureType=2&publishInode=d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3D71b8a1ca-37b6-4b6e-a43b-c7482f28db6c%26p_p_id%3DEXT_11%26p_p_action%3D1%26p_p_state%3Dmaximized%26_EXT_11_struts_action%3D%252Fext%252Fcontentlet%252Fview_contentlets%26selected_lang%3D1
+
+p_l_id: 71b8a1ca-37b6-4b6e-a43b-c7482f28db6c
+p_p_id: EXT_11
+p_p_action: 1
+p_p_state: maximized
+p_p_mode: view
+_EXT_11_struts_action: /ext/contentlet/edit_contentlet
+_EXT_11_cmd: full_publish_list
+structure_id: 9e0a09af-a7be-4c83-9d5e-c6cc9c050219
+contentStructureType: 2
+publishInode: d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6
+referer: /c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fview_contentlets&selected_lang=1
+
+
+
+Unpublish
+GET
+http://192.168.140.130/c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&p_p_mode=view&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&_EXT_11_cmd=unpublish&structure_id=9e0a09af-a7be-4c83-9d5e-c6cc9c050219&contentStructureType=2&inode=d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3D71b8a1ca-37b6-4b6e-a43b-c7482f28db6c%26p_p_id%3DEXT_11%26p_p_action%3D1%26p_p_state%3Dmaximized%26_EXT_11_struts_action%3D%252Fext%252Fcontentlet%252Fview_contentlets%26selected_lang%3D1
+
+p_l_id: 71b8a1ca-37b6-4b6e-a43b-c7482f28db6c
+p_p_id: EXT_11
+p_p_action: 1
+p_p_state: maximized
+p_p_mode: view
+_EXT_11_struts_action: /ext/contentlet/edit_contentlet
+_EXT_11_cmd: unpublish
+structure_id: 9e0a09af-a7be-4c83-9d5e-c6cc9c050219
+contentStructureType: 2
+inode: d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6
+referer: /c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fview_contentlets&selected_lang=1
+
+
+
+Archive
+GET
+http://192.168.140.130/c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&p_p_mode=view&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&structure_id=9e0a09af-a7be-4c83-9d5e-c6cc9c050219&contentStructureType=2&cmd=delete&inode=d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6&referer=/c/portal/layout%3Fp_l_id%3D71b8a1ca-37b6-4b6e-a43b-c7482f28db6c%26p_p_id%3DEXT_11%26p_p_action%3D1%26p_p_state%3Dmaximized%26_EXT_11_struts_action%3D%252Fext%252Fcontentlet%252Fview_contentlets
+
+p_l_id: 71b8a1ca-37b6-4b6e-a43b-c7482f28db6c
+p_p_id: EXT_11
+p_p_action: 1
+p_p_state: maximized
+p_p_mode: view
+_EXT_11_struts_action: /ext/contentlet/edit_contentlet
+structure_id: 9e0a09af-a7be-4c83-9d5e-c6cc9c050219
+contentStructureType: 2
+cmd: delete
+inode: d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6
+referer: /c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fview_contentlets
+
+
+Unarchive
+GET
+http://192.168.140.130/c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&p_p_mode=view&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&_EXT_11_cmd=undelete&structure_id=9e0a09af-a7be-4c83-9d5e-c6cc9c050219&contentStructureType=2&inode=d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3D71b8a1ca-37b6-4b6e-a43b-c7482f28db6c%26p_p_id%3DEXT_11%26p_p_action%3D1%26p_p_state%3Dmaximized%26_EXT_11_struts_action%3D%252Fext%252Fcontentlet%252Fview_contentlets
+
+p_l_id: 71b8a1ca-37b6-4b6e-a43b-c7482f28db6c
+p_p_id: EXT_11
+p_p_action: 1
+p_p_state: maximized
+p_p_mode: view
+_EXT_11_struts_action: /ext/contentlet/edit_contentlet
+_EXT_11_cmd: undelete
+structure_id: 9e0a09af-a7be-4c83-9d5e-c6cc9c050219
+contentStructureType: 2
+inode: d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6
+referer: /c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fview_contentlets
+
+
+Delete
+GET
+http://192.168.140.130/c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&p_p_mode=view&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&_EXT_11_cmd=full_delete&structure_id=9e0a09af-a7be-4c83-9d5e-c6cc9c050219&contentStructureType=2&inode=d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3D71b8a1ca-37b6-4b6e-a43b-c7482f28db6c%26p_p_id%3DEXT_11%26p_p_action%3D1%26p_p_state%3Dmaximized%26_EXT_11_struts_action%3D%252Fext%252Fcontentlet%252Fview_contentlets
+
+p_l_id: 71b8a1ca-37b6-4b6e-a43b-c7482f28db6c
+p_p_id: EXT_11
+p_p_action: 1
+p_p_state: maximized
+p_p_mode: view
+_EXT_11_struts_action: /ext/contentlet/edit_contentlet
+_EXT_11_cmd: full_delete
+structure_id: 9e0a09af-a7be-4c83-9d5e-c6cc9c050219
+contentStructureType: 2
+inode: d0bcee60-2fa7-4cb3-bddf-0fd1a3a8baf6
+referer: /c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fview_contentlets
