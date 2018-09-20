@@ -1,4 +1,4 @@
-# dotTools Utilities
+# dotTools Utilities (Beta)
 
 dotTools is a back-end UI for performing various utility functions in dotCMS.
 
@@ -13,11 +13,28 @@ dotTools is a back-end UI for performing various utility functions in dotCMS.
 See [dotCMS installation guide](https://github.com/x0rsw1tch/DotCMSVelocity/blob/master/dotcms-installation.md#dotcms-installation-1) for information on how to set this up.
 
 
+## Compatibility
+
+| Feature             | 3                  | 4                  | 5        
+| --------------------|--------------------|--------------------|-------------------
+| Velocity Console    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:
+| Content Manager     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:
+| Content Import      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:
+| Content Export      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:
+| Content Type Import | :x:                | :heavy_check_mark: | :heavy_check_mark:
+| Content Type Export | :x:                | :heavy_check_mark: | :heavy_check_mark:
+| API Interactor      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:
+
+> Please Note: dotTools for dotCMS 3 has only been tested with 3.7.2. Earlier versions may not work properly
+
+
 ## Installation
 
 1. Extract Tarball to (dotCMS 5):
     + `plugins/com.dotcms.config/ROOT/dotserver/tomcat-8.5.32/webapps/ROOT/dottools`
+	
 	or for v3.x, 4.x
+	
 	+ `plugins/com.dotcms.config/ROOT/dotserver/tomcat-8.0.18/webapps/ROOT/dottools`
 
 Example: 
@@ -31,8 +48,10 @@ Then: `tar -zxvf dottools.tar.gz -C plugins/com.dotcms.config/ROOT/dotserver/tom
 # What's Included
 
 * dotCMS Velocity console: Test and run Velocity Scripts in real-time
+* Content Manager: Apply mass workflow statuses to contentlets, prune contentlet inodes, and get contentlet JSON data
 * Contentlet Export/Import: Import and export contentlets with JSON, XML, CSV, or HTML Table
-* Content Type (Structure) Import/Export: Easily Transfer Content Types without the need for Bundles/Push Publishing
+* Content Type (Structure) Import/Export: Easily Transfer Content Types between instances, without the need for Bundles/Push Publishing
+* API Interactor: Work with dotCMS/Spring or other HTTP API's from within the UI
 
 
 ---
@@ -68,6 +87,23 @@ Shows a history of each code submitted
 
 Snippets and misc things Velocity
 
+## Content Manager
+
+Provide a Lucene Query and a list of contentlets will appear. There are two functions that can occur from here:
+
+![Dot Tools Manager List](tools-manager-list.png)
+
+
+1. Get contentlet JSON data by clicking on the contentlet title
+
+![Dot Tools Manager JSON](tools-manager-json.png)
+
+
+2. Select one or more contentlets to apply workflow actions, or prune old inodes
+
+ > Pro Tip: Since dotCMS 5 creates new inodes after applying workflow actions, be sure to refresh the list if applying another action.
+
+![Dot Tools Manager Actions](tools-manager-actions.png)
 
 ## Content Import
 
@@ -120,3 +156,12 @@ The Content Type will be created first, followed by each individual field.
 [Create Content Type](https://dotcms.com/docs/latest/content-type-api#createContentType)
 
 [Create Field](https://dotcms.com/docs/latest/fields-content-type-api#createField)
+
+
+## API Interactor
+
+![Dot Tools API Interactor](tools-api-interactor.png)
+
+Supply the appropriate parameters and click go, you will be taken to a results window to see the response.
+
+![Dot Tools API Interactor](tools-api-interactor-result.png)
