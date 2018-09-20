@@ -240,7 +240,7 @@ CrudApp.util = {
 			}
 		}
 	},
-	
+
 	pruneInodes: function (identifier) {
 		CrudApp.sessionLog.addEntry("Getting list of inodes for " + identifier, 3);
 		var inodeList = [];
@@ -279,10 +279,17 @@ CrudApp.util = {
 
 	deleteInode: function (inode, timeout) {
 		CrudApp.sessionLog.addEntry("Queueing: " + inode, 3);
+		var uri = "";
+		if (CrudApp.dotcmsVersion > 3) {
+			uri = '/c/portal/layout?p_l_id=b7ab5d3c-5ee0-4195-a17e-8f5579d718dd&p_p_id=site-browser&p_p_action=1&p_p_state=maximized&p_p_mode=view&_site_browser_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&cmd=deleteversion&&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3Db7ab5d3c-5ee0-4195-a17e-8f5579d718dd&inode=' + inode;
+		} else if (CrudApp.dotcmsVersion === 3) {
+			uri = '/c/portal/layout?p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=EXT_11&p_p_action=1&p_p_state=maximized&p_p_mode=view&_EXT_11_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&cmd=deleteversion&referer=/c/portal/layout?&inode=' + inode;
+		}
+
 		setTimeout(function () {
 			$.ajax({
 				method: 'GET',
-				url: '/c/portal/layout?p_l_id=b7ab5d3c-5ee0-4195-a17e-8f5579d718dd&p_p_id=site-browser&p_p_action=1&p_p_state=maximized&p_p_mode=view&_site_browser_struts_action=%2Fext%2Fcontentlet%2Fedit_contentlet&cmd=deleteversion&&referer=%2Fc%2Fportal%2Flayout%3Fp_l_id%3Db7ab5d3c-5ee0-4195-a17e-8f5579d718dd&inode=' + inode,
+				url: uri,
 				contentType: 'text/html',
 				success: function (data) {
 					CrudApp.sessionLog.addEntry("Deleted inode: " + inode, 3);
@@ -308,7 +315,7 @@ CrudApp.util = {
 CrudApp.dwr = {
 
 	getWorkflowPayload: function (workflow, item) {
-		
+
 		if (CrudApp.dotcmsVersion === 5) {
 
 			var payloadObject = CrudApp.dwr.payloads.v5.contentlet();
@@ -317,7 +324,7 @@ CrudApp.dwr = {
 			var inodeIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "c0-param4");
 			var batchIdIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "batchId");
 			var sessionIdIndex = CrudApp.dwr.getPayloadIndex(payloadObject, "scriptSessionId");
-			
+
 			payloadObject[workflowIndex].value = "string:" + CrudApp.getWorkflowId(workflow);
 			payloadObject[inodeIndex].value =  "string:" + item;
 			payloadObject[batchIdIndex].value = CrudApp.dwrBatchId;
@@ -327,7 +334,7 @@ CrudApp.dwr = {
 
 		} else if (CrudApp.dotcmsVersion === 4) {
 
-			
+
 			if (workflow == "delete") {
 				// Deleting contentlets in dotCMS 4 is a GET request without a payload
 				return null;
@@ -347,11 +354,11 @@ CrudApp.dwr = {
 				return CrudApp.dwr.stringifyPayload(payloadObject);
 
 			}
-		
-		} else if (CrudApp.dotcmsVersion === 3) {
 
+		} else if (CrudApp.dotcmsVersion === 3) {
+			return null;
 		}
-			
+
 
 		return null;
 	},
@@ -385,10 +392,10 @@ CrudApp.dwr = {
 
 			if (type == 'contentlet') {
 				if (operation == 'workflow') {
-					
+
 					var queryParams = "";
 					var dwrFile = CrudApp.dwr.files.v4.contentlet(action);
-					
+
 					if (action == "delete") {
 
 						queryParams += "p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c" + "&";
@@ -401,7 +408,7 @@ CrudApp.dwr = {
 						queryParams += "structure_id=" + structureInode + "&";
 						queryParams += "contentStructureType=1" + "&";
 						queryParams += "inode=" + inode + "&";
-						queryParams += "referer=p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c&p_p_id=content&p_p_action=1&p_p_state=maximized&_content_struts_action=%2Fext%2Fcontentlet%2Fview_contentlets";
+						queryParams += "referer=/c/portal/layout?";
 
 					}
 
@@ -410,14 +417,94 @@ CrudApp.dwr = {
 			}
 
 		} else if (CrudApp.dotcmsVersion === 3) {
+			
+			if (type == 'contentlet') {
+				if (operation == 'workflow') {
 
+					var queryParams = "";
+					var dwrFile = CrudApp.dwr.files.v3.contentlet(action);
+
+					if (action == "publish") {
+
+						queryParams += "p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c" + "&";
+						queryParams += "p_p_id=EXT_11" + "&";
+						queryParams += "p_p_action=1" + "&";
+						queryParams += "p_p_state=maximized" + "&";
+						queryParams += "p_p_mode=view" + "&";
+						queryParams += "_EXT_11_struts_action=/ext/contentlet/edit_contentlet" + "&";
+						queryParams += "_EXT_11_cmd=full_publish_list" + "&";
+						queryParams += "structure_id=" + structureInode + "&";
+						queryParams += "contentStructureType=1" + "&";
+						queryParams += "publishInode=" + inode + "&";
+						queryParams += "referer=/c/portal/layout?";
+
+					} else if (action == "unpublish") { 
+
+						queryParams += "p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c" + "&";
+						queryParams += "p_p_id=EXT_11" + "&";
+						queryParams += "p_p_action=1" + "&";
+						queryParams += "p_p_state=maximized" + "&";
+						queryParams += "p_p_mode=view" + "&";
+						queryParams += "_EXT_11_struts_action=/ext/contentlet/edit_contentlet" + "&";
+						queryParams += "_EXT_11_cmd=unpublish" + "&";
+						queryParams += "structure_id=" + structureInode + "&";
+						queryParams += "contentStructureType=1" + "&";
+						queryParams += "inode=" + inode + "&";
+						queryParams += "referer=/c/portal/layout?";
+						
+					} else if (action == "archive") { 
+
+						queryParams += "p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c" + "&";
+						queryParams += "p_p_id=EXT_11" + "&";
+						queryParams += "p_p_action=1" + "&";
+						queryParams += "p_p_state=maximized" + "&";
+						queryParams += "p_p_mode=view" + "&";
+						queryParams += "_EXT_11_struts_action=/ext/contentlet/edit_contentlet" + "&";
+						queryParams += "structure_id=" + structureInode + "&";
+						queryParams += "contentStructureType=1" + "&";
+						queryParams += "cmd=delete" + "&";
+						queryParams += "inode=" + inode + "&";
+						queryParams += "referer=/c/portal/layout?";
+
+					} else if (action == "unarchive") { 
+
+						queryParams += "p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c" + "&";
+						queryParams += "p_p_id=EXT_11" + "&";
+						queryParams += "p_p_action=1" + "&";
+						queryParams += "p_p_state=maximized" + "&";
+						queryParams += "p_p_mode=view" + "&";
+						queryParams += "_EXT_11_struts_action=/ext/contentlet/edit_contentlet" + "&";
+						queryParams += "_EXT_11_cmd=undelete" + "&";
+						queryParams += "structure_id=" + structureInode + "&";
+						queryParams += "contentStructureType=1" + "&";
+						queryParams += "inode=" + inode + "&";
+						queryParams += "referer=/c/portal/layout?";
+
+					} else if (action == "delete") { 
+
+						queryParams += "p_l_id=71b8a1ca-37b6-4b6e-a43b-c7482f28db6c" + "&";
+						queryParams += "p_p_id=EXT_11" + "&";
+						queryParams += "p_p_action=1" + "&";
+						queryParams += "p_p_state=maximized" + "&";
+						queryParams += "p_p_mode=view" + "&";
+						queryParams += "_EXT_11_struts_action=/ext/contentlet/edit_contentlet" + "&";
+						queryParams += "_EXT_11_cmd=full_delete" + "&";
+						queryParams += "structure_id=" + structureInode + "&";
+						queryParams += "contentStructureType=1" + "&";
+						queryParams += "inode=" + inode + "&";
+						queryParams += "referer=/c/portal/layout?";
+
+					}
+
+					return String(dwrFile + queryParams);
+				}
+			}
 		}
-		
 	},
 
-	
+
 	getRequestMethod: function (type, operation, action) {
-		
+
 		if (CrudApp.dotcmsVersion === 4) {
 			if (type == 'contentlet') {
 				if (operation == 'workflow') {
@@ -427,11 +514,20 @@ CrudApp.dwr = {
 				}
 			}
 		}
+		if (CrudApp.dotcmsVersion === 3) {
+			if (type == 'contentlet') {
+				if (operation == 'workflow') {
+					if (action) {
+						return "GET";
+					}
+				}
+			}
+		}
 
 		return "POST";
 	},
-	
-	
+
+
 	payloads: {
 		v5: {
 			contentlet: function () {
@@ -512,7 +608,7 @@ CrudApp.dwr = {
 							{ "id": "batchId",         "value": null },
 							{ "id": "instanceId",      "value": "0" },
 							{ "id": "page",            "value": "/c/portal/layout?" },
-							{ "id": "scriptSessionId", "value": null }, // DWRSESSIONID
+							{ "id": "scriptSessionId", "value": null } // DWRSESSIONID
 						];
 					case "delete":
 						return null;
@@ -532,13 +628,13 @@ CrudApp.dwr = {
 				switch (workflow) {
 					case "publish":
 						return "/dwr/call/plaincall/BrowserAjax.publishAsset.dwr";
-					
+
 					case "unpublish":
 						return "/dwr/call/plaincall/BrowserAjax.unPublishAsset.dwr";
-					
+
 					case "archive":
 						return "/dwr/call/plaincall/BrowserAjax.archiveAsset.dwr";
-					
+
 					case "unarchive":
 						return "/dwr/call/plaincall/BrowserAjax.unArchiveAsset.dwr";
 
@@ -547,11 +643,16 @@ CrudApp.dwr = {
 						return "/c/portal/layout?";
 				}
 			}
+		},
+		v3: {
+			contentlet: function (workflow) {
+				return "/c/portal/layout?";
+			}
 		}
-		
+
 	},
-	
-	
+
+
 	session: {
 
 		getSessionId: function () {
@@ -615,7 +716,7 @@ Vue.component('velocityConsole', {
 			if (this.liveUpdate === false) {
 				CrudApp.util.addToConsoleHistory(this.consoleInput);
 			}
-			
+
 			if (this.lastDispatchDiff() < 350 || this.floodContol) {
 				this.floodControl = true;
 				this.loading = true
@@ -780,23 +881,39 @@ Vue.component('contentList', {
 				return result.name;
 			}
 
-			var contentletStructure = this.findStructureById(result.stInode);
-			if (contentletStructure) {
-				var contentletDisplayField = this.findContentletDisplayField(contentletStructure).variable;
-				return result[contentletDisplayField];
+			if (this.ct) {
+				var contentletStructure = this.findStructureById(result.stInode);
+				if (contentletStructure) {
+					var contentletDisplayField = this.findContentletDisplayField(contentletStructure).variable;
+					return result[contentletDisplayField];
+				}
+			} else {
+				if (result["__DOTNAME__"]) {
+					return result["__DOTNAME__"];
+				} else {
+					return result.identifier;
+				}
 			}
 
 		},
 		resultType: function (result) {
 			var idToFind = result.stInode;
-			var structureIndex = this.ct.findIndex(function (element) {
-				return element.id === idToFind
-			});
+			if (this.ct) {
+				var structureIndex = this.ct.findIndex(function (element) {
+					return element.id === idToFind
+				});
+			} else { 
+				return result.stInode;
+			}
 			return this.ct[structureIndex].variable;
 		},
 		resultModUser: function (result) {
 			var idToFind = result.modUser;
-			var userIndex = this.users.findIndex(element => element.id === idToFind);
+			if (this.users) {
+				var userIndex = this.users.findIndex(element => element.id === idToFind);
+			} else {
+				return result.modUser;
+			}
 			return this.users[userIndex].name;
 
 		},
@@ -812,7 +929,7 @@ Vue.component('contentList', {
 					return element;
 				};
 			});
-			
+
 		},
 		findStructureById: function (id) {
 			return this.ct.find(function (element) {
@@ -909,11 +1026,12 @@ Vue.component("contentletData", {
 
 Vue.component('queryBox', {
 	template: "#query-box",
-	props: ["ct"],
+	props: ["ct", "version"],
 	data: function () {
 		return {
 			rawData: null,
 			selectedCT: "",
+			ctName: null,
 			fields: null,
 			rawFields: null,
 			exportData: null,
@@ -981,7 +1099,7 @@ Vue.component('queryBox', {
 			var apiUrl  = '/api/content/render/false/';
 				apiUrl += 'type/' + apiFormat + '/';
 				apiUrl += 'query/';
-				apiUrl += '+contentType:' + encodeURIComponent(this.selectedCT) + '%20';
+				apiUrl += '+contentType:' + encodeURIComponent(this.ctName) + '%20';
 				apiUrl += encodeURIComponent(this.exportOptions.query) + '%20';
 				apiUrl += CrudApp.host + '%20';
 				apiUrl += '+languageId:1' + '%20' + '+deleted:false' + '%20' + '+working:true' + '%20';
@@ -1052,13 +1170,17 @@ Vue.component('queryBox', {
 		},
 		syncFieldPreferences: function (data) {
 			var syncedObject = [];
-			this.exportOptions.fields.forEach(function (element, index) {
-				for (var i = 0; i < data.length; i++) {
-					if (typeof syncedObject[i] == 'undefined') syncedObject[i] = {};
-					syncedObject[i][element] = data[i][element];
-				}
-			});
-			return syncedObject;
+			if (this.version.dotcmsVersion > 3) {
+				this.exportOptions.fields.forEach(function (element, index) {
+					for (var i = 0; i < data.length; i++) {
+						if (typeof syncedObject[i] == 'undefined') syncedObject[i] = {};
+						syncedObject[i][element] = data[i][element];
+					}
+				});
+				return syncedObject;
+			} else {
+				return data;
+			}
 		},
 		getDisabledFields: function () {
 			var vm = this;
@@ -1085,7 +1207,7 @@ Vue.component('queryBox', {
 
 Vue.component('queryImportBox', {
 	template: "#query-import-box",
-	props: ["ct"],
+	props: ["ct", "version"],
 	data: function () {
 		return {
 			ctName: null,
@@ -1790,7 +1912,7 @@ CrudApp.vue = new Vue({
 		getDotcmsVersion: function () {
 			if (CrudApp.dotcmsVersion) {
 				this.dotcmsVersion = CrudApp.dotcmsVersion;
-			} else {	
+			} else {
 				if (this.dotcmsConfigHasReleaseVersion()) {
 					this.dotcmsVersion = CrudApp.util.determineDotcmsVersion(this.dotcms.config.releaseInfo.version);
 				} else {
@@ -1828,15 +1950,20 @@ CrudApp.vue = new Vue({
 		}
 	},
 	mounted: function () {
-		this.getCTList();
-		this.getUserList();
-		this.getHostData();
+		this.dotcmsVersion = dotcmsVersion;
+		if (this.dotcmsVersion > 3) {
+			this.getCTList();
+			this.getUserList();
+			this.getHostData();
+		}
 		if (!Cookies.get('DWRSESSIONID')) {
 			this.getDwrSessionId();
 		} else {
 			CrudApp.dwrsessionid = Cookies.get('DWRSESSIONID');
 		}
-		this.getDotcmsInfo();
+		if (this.dotcmsVersion > 3) {
+			this.getDotcmsInfo();
+		}
 	}
 });
 
