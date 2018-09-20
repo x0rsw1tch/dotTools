@@ -811,7 +811,7 @@ Vue.component('contentManager', {
 			hasResults: false,
 			queryErrors: null,
 			query: {
-				query: CrudApp.host + " -contentType:Host -baseType:3 -contentType:Persona +languageId:1 +deleted:false working:true",
+				query: CrudApp.host + " -contentType:Host -baseType:3 -contentType:Persona",
 				query2: "",
 				offset: 0,
 				limit: 0,
@@ -1700,7 +1700,7 @@ Vue.component('dotApi', {
 				uriParams = uriParams + this.query.uri;
 			}
 			if (this.query.params) {
-				uriParams = uriParams + this.query.params;
+				uriParams = uriParams + "?" + this.query.params;
 			}
 			$.ajax({
 				method: this.query.method,
@@ -1710,7 +1710,7 @@ Vue.component('dotApi', {
 				success: function (data) {
 					CrudApp.sessionLog.addEntry("dotApi sendRequest(): Request Callback success", 3);
 					vm.showOutput = true;
-					vm.queryResponse = data.toString();
+					vm.queryResponse = data;
 				},
 				error: function (status, xhr, error) {
 					CrudApp.sessionLog.addEntry("dotApi sendRequest(): Request Callback Failed", 1);
