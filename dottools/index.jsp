@@ -375,7 +375,7 @@ if (WebAPILocator.getUserWebAPI().isLoggedToBackend(request)) {
 						<div class="grid-x grid-padding-x">
 							<div class="cell large-3 medium-4 small-6" v-if="fields" v-for="field in fields">
 								<label class="field-item" :for="field.variable">
-									<input type="checkbox" v-model="exportOptions.fields"  :value="field.variable" :id="field.variable">{{ field.name }}
+									<input type="checkbox" v-model="exportOptions.fields" :value="field.variable" :id="field.variable">{{ field.name }}
 								</label>
 							</div>
 						</div>

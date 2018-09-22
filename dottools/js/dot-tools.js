@@ -1051,7 +1051,7 @@ Vue.component('queryBox', {
 			var vm = this;
 			this.exportOptions.fields = [];
 			for (var i = 0; i < this.ct.length; i++) {
-				if (this.ct[i].variable == this.selectedCT) {
+				if (this.ct[i].variable == this.ctName) {
 					this.rawFields = this.ct[i].fields;
 					this.fields = this.rebuildFieldsList(this.ct[i].fields);
 					this.preSelectCheckboxes();
@@ -1195,8 +1195,10 @@ Vue.component('queryBox', {
 		}
 	},
 	watch: {
-		selectedCT: function (val) {
-			this.getCTFields();
+		ctName: function (val) {
+			if (this.version.dotcmsVersion > 3) {
+				this.getCTFields();
+			}
 		},
 		exportFormat: function (val) {
 			this.setOutput();
