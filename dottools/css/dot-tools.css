@@ -101,6 +101,7 @@ div.velocity-output-pre {
 div.velocity-output-pre > pre {
     max-height: 27rem;
     overflow-y: auto;
+    white-space: pre-wrap;
 }
 
 
