@@ -205,15 +205,23 @@ var CrudApp = {
 			}
 			out += timestamp + '&nbsp;' + logLevel + '&nbsp;' + text + '</p>';
 
+			
+			
 			$(logWindow).html( out + $(logWindow).html() );
 		},
 		openLogWindow: function () {
 			$('#logWindow').foundation('open');
 		}
-
 	}
-
 };
+
+// Log Trimmer
+setInterval(function () {
+	var logEntries = $('#session-log').children('p');
+	if (logEntries.length > 100) {
+		$('#session-log').html(logEntries.splice(0, 100));
+	}
+}, 800);
 
 CrudApp.util = {
 
@@ -849,6 +857,13 @@ Vue.component('contentManager', {
 				}
 			})
 		},
+	},
+	watch: {
+		'query.limit': function () {
+			if (this.query.limit > 1000) {
+				this.query.limit = 1000;
+			}
+		}
 	}
 });
 
@@ -977,20 +992,20 @@ Vue.component('contentList', {
 						dataType: "text",
 						data: CrudApp.dwr.getWorkflowPayload(this.actionSelected, element),
 						success: function(data) {
-							vm.handleActionResponse(data);
+							vm.handleActionResponse(data, index);
 						},
 						error: function (xhr, status, error) {
 							console.error('Execute workflow action failed: ', xhr, status, error);
-							CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Error: " + xhr, 1);
+							CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Error: " + (index+1) + " " + xhr, 1);
 						}
 					});
 				}
 			}
 		},
-		handleActionResponse: function (data) {
+		handleActionResponse: function (data, index) {
 			if (CrudApp.dotcmsVersion === 5) {
 				if (data.indexOf('Workflow executed') > 0 && data.indexOf('success')) {
-					CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Success", 3);
+					CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Success ("+ Number(index+1) +")", 3);
 				} else {
 					CrudApp.sessionLog.addEntry("contentManager Apply Workflow: Callback Invalid return data", 2);
 				}
@@ -1281,7 +1296,7 @@ Vue.component('queryImportBox', {
 			var vm = this;
 			setTimeout(function() {
 				vm.jsonImport(data, i);
-			}, (200 * i));
+			}, (110 * i));
 		},
 		jsonImport: function (importData, id) {
 			vm = this;
@@ -1293,7 +1308,7 @@ Vue.component('queryImportBox', {
 					contentType: 'application/json',
 					success: function(data, status, xhr) {
 						vm.importState.push({'id': id, 'message': xhr.statusText, 'responseCode': xhr.status});
-						CrudApp.sessionLog.addEntry("jsonImport(): Import Success", 3);
+						CrudApp.sessionLog.addEntry("jsonImport(): Import Success " + id, 3);
 					},
 					error: function (status, xhr, error) {
 						vm.importState.push({'id': id, 'message': status.responseText, 'responseCode': status.status});
