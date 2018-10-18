@@ -1819,7 +1819,7 @@ CrudApp.vue = new Vue({
 			var vm = this;
 			$.ajax({
 				method: 'GET',
-				url: '/api/v1/users/filter/start/0/limit/-1/includeAnonymous/true/includeDefault/true',
+				url: '/api/v1/users/filter/start/0/limit/false/includeAnonymous/true/includeDefault/true',
 				contentType: 'application/json',
 				success: function (data) {
 					if (data.errors.length === 0 && data.entity) {
