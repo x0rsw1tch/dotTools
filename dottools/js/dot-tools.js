@@ -929,8 +929,11 @@ Vue.component('contentList', {
 			} else {
 				return result.modUser;
 			}
-			return this.users[userIndex].name;
-
+			if (userIndex > -1) {
+				return this.users[userIndex].name;
+			} else {
+				return result.modUser;
+			}
 		},
 		setResult: function (result) {
 			this.result = result;
